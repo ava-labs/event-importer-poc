@@ -4,3 +4,4 @@
 [submodule "proof-verifier/lib/openzeppelin-contracts"]
 	path = proof-verifier/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+	branch = v4.8.1

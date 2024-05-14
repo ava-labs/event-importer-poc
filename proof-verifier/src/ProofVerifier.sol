@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract ProofVerifier {
-    function verifyProof(bytes memory encodedProof, bytes32 leaf, bytes32 root) public view returns (bool) {
+    function verifyProof(bytes memory encodedProof, bytes32 leaf, bytes32 root) public pure returns (bool) {
         bytes[] memory proof = abi.decode(encodedProof, (bytes[]));
 
         // Convert proof elements to bytes32

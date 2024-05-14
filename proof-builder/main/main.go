@@ -1,61 +1,104 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
+	"encoding/hex"
 	"os"
 
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
+type slicePutter struct {
+	slice [][]byte
+}
+
+func newSlicePutter() *slicePutter {
+	return &slicePutter{
+		slice: make([][]byte, 0),
+	}
+}
+
+func (sp *slicePutter) Put(key []byte, value []byte) error {
+	log.Info("Slice putter put", "key", hex.EncodeToString(key), "value", hex.EncodeToString(value))
+	sp.slice = append(sp.slice, value)
+	return nil
+}
+
+func (sp *slicePutter) Delete(key []byte) error {
+	// No-op
+	return nil
+}
+
 func main() {
+	// Set log output to stdout
 	log.Root().SetHandler(log.StreamHandler(os.Stdout, log.LogfmtFormat()))
-	receipt1JSON := `{
-        "blockHash": "0x3c490d675f4c0fb921a183cb093748f8a70fbca703695d9cec0da15809020169",
-        "blockNumber": "0x1eea71b",
-        "contractAddress": null,
-        "cumulativeGasUsed": "0x1ac55",
-        "effectiveGasPrice": "0x6f332da80",
-        "from": "0x5106af71713d3be15415107f61f6bc195ccabcce",
-        "gasUsed": "0x1ac55",
-        "logs": [
-            {
-                "address": "0xa9d587a00a31a52ed70d6026794a8fc5e2f5dcb0",
-                "topics": [
-                    "0x43dc749a04ac8fb825cbd514f7c0e13f13bc6f2ee66043b76629d51776cff8e0",
-                    "0x0000000000000000000000000000000000000000000000000000000000001bda"
-                ],
-                "data": "0x000000000000000000000000080c0a5c7369739e298a8709eda8924941e0f77d",
-                "blockNumber": "0x1eea71b",
-                "transactionHash": "0xba9622e1c05563cdb356ebebb0877a3ab0efe57ffade32bb1e92841e66a4ab95",
-                "transactionIndex": "0x0",
-                "blockHash": "0x3c490d675f4c0fb921a183cb093748f8a70fbca703695d9cec0da15809020169",
-                "logIndex": "0x0",
-                "removed": false
-            }
-        ],
-        "logsBloom": "0x00000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000100000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000021000000000000000000000000000000000000000000000000000000000000000000000000000",
-        "status": "0x1",
-        "to": "0xa9d587a00a31a52ed70d6026794a8fc5e2f5dcb0",
-        "transactionHash": "0xba9622e1c05563cdb356ebebb0877a3ab0efe57ffade32bb1e92841e66a4ab95",
-        "transactionIndex": "0x0",
-        "type": "0x2"
-    }`
-	var receipt1 types.Receipt
-	err := json.Unmarshal([]byte(receipt1JSON), &receipt1)
+
+	// Create the ethclient
+	ctx := context.Background()
+	ethClient, err := ethclient.DialContext(ctx, "https://api.avax-test.network/ext/bc/C/rpc")
 	if err != nil {
 		panic(err)
 	}
-	log.Info("Unmarshalled receipt", "receipt", receipt1)
 
+	// Get the block info
+	blockHash := common.HexToHash("0x5504425badb74aa81d4f6a028a8c3b27cc364ad8d251c123a5c48b7e479e4d1f")
+	blockInfo, err := ethClient.BlockByHash(ctx, blockHash)
+	if err != nil {
+		panic(err)
+	}
+	log.Info("Got block", "blockHash", blockHash.String())
+
+	// Get the receipts for each transaction in the block
+	receipts := make([]*types.Receipt, blockInfo.Transactions().Len())
+	for i, tx := range blockInfo.Transactions() {
+		receipt, err := ethClient.TransactionReceipt(ctx, tx.Hash())
+		if err != nil {
+			panic(err)
+		}
+		receipts[i] = receipt
+	}
+
+	receipts100 := make([]*types.Receipt, 100*len(receipts))
+	for i := 0; i < 100; i++ {
+		for j, r := range receipts {
+			receipts100[(i*len(receipts))+j] = r
+		}
+	}
+	log.Info("Got receipts", "numReceipts", len(receipts100))
+
+	// Create a trie of the receipts
 	t, err := trie.New(trie.StateTrieID(common.Hash{}), trie.NewDatabase(nil))
 	if err != nil {
 		panic(err)
 	}
-	receipts := []*types.Receipt{&receipt1}
-	root := types.DeriveSha(types.Receipts(receipts), t)
+	root := types.DeriveSha(types.Receipts(receipts100), t)
 	log.Info("Computed trie root", "root", root.String())
+
+	// Verify that the root of the trie matches the receipts root of the block
+	// if root != blockInfo.ReceiptHash() {
+	// 	log.Crit("Roots do not match", "root", root.String(), "blockInfo.ReceiptsRoot", blockInfo.ReceiptHash().String())
+	// 	panic("Roots do not match")
+	// }
+	// log.Info("Receipt root matches block receipt root")
+
+	sp := newSlicePutter()
+	receipt1Key, err := rlp.EncodeToBytes(uint(0))
+	if err != nil {
+		panic(err)
+	}
+	err = t.Prove(receipt1Key, sp)
+	if err != nil {
+		panic(err)
+	}
+
+	log.Info("Created proof")
+	for _, proofElement := range sp.slice {
+		log.Info("Proof element", "element", hex.EncodeToString(proofElement))
+	}
 
 }
