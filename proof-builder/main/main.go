@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"os"
 
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -20,18 +21,29 @@ func main() {
 
 	// Create the ethclient
 	ctx := context.Background()
-	ethClient, err := ethclient.DialContext(ctx, "https://api.avax-test.network/ext/bc/C/rpc")
+	ethClient, err := ethclient.DialContext(ctx, "https://api.avax.network/ext/bc/C/rpc")
 	if err != nil {
 		panic(err)
 	}
 
 	// Get the block info
-	blockHash := common.HexToHash("0x5504425badb74aa81d4f6a028a8c3b27cc364ad8d251c123a5c48b7e479e4d1f")
+	blockHash := common.HexToHash("0x2d9215bce478eb82bfd35f7e9bdc9d76e1814e8d7b5aa10ab05e2f17d145c0cf")
 	blockInfo, err := ethClient.BlockByHash(ctx, blockHash)
+	if err != nil || blockInfo == nil {
+		panic(err)
+	}
+	if blockInfo.Hash() != blockHash {
+		panic("Block hash does not match")
+	}
+
+	encodedHeader, err := rlp.EncodeToBytes(blockInfo.Header())
 	if err != nil {
 		panic(err)
 	}
 	log.Info("Got block", "blockHash", blockHash.String())
+	log.Info("RLP Encoded block header", "header", hex.EncodeToString(encodedHeader))
+	log.Info("Actual header hash", "hash", blockInfo.Header().Hash().String())
+	log.Info("Actual block hash", "hash", blockInfo.Hash().String())
 
 	// Get the receipts for each transaction in the block
 	receipts := make([]*types.Receipt, blockInfo.Transactions().Len())
@@ -61,7 +73,7 @@ func main() {
 	log.Info("Receipt root matches block receipt root")
 
 	memoryDB := memorydb.New()
-	receipt1Key, err := rlp.EncodeToBytes(uint(0))
+	receipt1Key, err := rlp.EncodeToBytes(uint(8))
 	if err != nil {
 		panic(err)
 	}
@@ -74,11 +86,13 @@ func main() {
 	log.Info("Created proof")
 	it := memoryDB.NewIterator(nil, nil)
 	encodedProof := make([]string, 0)
+	i := 0
 	for it.Next() {
-		key := it.Key()
 		value := it.Value()
-		log.Info("Proof element", "key", hex.EncodeToString(key), "value", hex.EncodeToString(value))
 		encodedProof = append(encodedProof, hex.EncodeToString(value))
+		formattedProofElem := fmt.Sprintf("proof[%d] = hex\"%s\";", i, hex.EncodeToString(value))
+		log.Info("Encoded proof element", "key", hex.EncodeToString(it.Key()), "elem", formattedProofElem)
+		i++
 	}
 	log.Info("Encoded proof", "proof", encodedProof)
 
