@@ -8,3 +8,6 @@
 [submodule "proof-verifier/lib/solidity-merkle-trees"]
 	path = proof-verifier/lib/solidity-merkle-trees
 	url = https://github.com/polytope-labs/solidity-merkle-trees
+[submodule "proof-verifier/lib/subnet-evm"]
+	path = proof-verifier/lib/subnet-evm
+	url = https://github.com/ava-labs/subnet-evm
