@@ -9,30 +9,10 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 )
-
-type slicePutter struct {
-	slice [][]byte
-}
-
-func newSlicePutter() *slicePutter {
-	return &slicePutter{
-		slice: make([][]byte, 0),
-	}
-}
-
-func (sp *slicePutter) Put(key []byte, value []byte) error {
-	log.Info("Slice putter put", "key", hex.EncodeToString(key), "value", hex.EncodeToString(value))
-	sp.slice = append(sp.slice, value)
-	return nil
-}
-
-func (sp *slicePutter) Delete(key []byte) error {
-	// No-op
-	return nil
-}
 
 func main() {
 	// Set log output to stdout
@@ -61,44 +41,51 @@ func main() {
 			panic(err)
 		}
 		receipts[i] = receipt
+		log.Info("Got receipt", "txHash", tx.Hash().String(), "status", receipt.Status, "cumulativeGasUsed", receipt.CumulativeGasUsed, "bloom", hex.EncodeToString(receipt.Bloom[:]), "logs", len(receipt.Logs))
 	}
-
-	receipts100 := make([]*types.Receipt, 100*len(receipts))
-	for i := 0; i < 100; i++ {
-		for j, r := range receipts {
-			receipts100[(i*len(receipts))+j] = r
-		}
-	}
-	log.Info("Got receipts", "numReceipts", len(receipts100))
+	log.Info("Got receipts", "numReceipts", len(receipts))
 
 	// Create a trie of the receipts
 	t, err := trie.New(trie.StateTrieID(common.Hash{}), trie.NewDatabase(nil))
 	if err != nil {
 		panic(err)
 	}
-	root := types.DeriveSha(types.Receipts(receipts100), t)
+	root := types.DeriveSha(types.Receipts(receipts), t)
 	log.Info("Computed trie root", "root", root.String())
 
 	// Verify that the root of the trie matches the receipts root of the block
-	// if root != blockInfo.ReceiptHash() {
-	// 	log.Crit("Roots do not match", "root", root.String(), "blockInfo.ReceiptsRoot", blockInfo.ReceiptHash().String())
-	// 	panic("Roots do not match")
-	// }
-	// log.Info("Receipt root matches block receipt root")
+	if root != blockInfo.ReceiptHash() {
+		log.Crit("Roots do not match", "root", root.String(), "blockInfo.ReceiptsRoot", blockInfo.ReceiptHash().String())
+		panic("Roots do not match")
+	}
+	log.Info("Receipt root matches block receipt root")
 
-	sp := newSlicePutter()
+	memoryDB := memorydb.New()
 	receipt1Key, err := rlp.EncodeToBytes(uint(0))
 	if err != nil {
 		panic(err)
 	}
-	err = t.Prove(receipt1Key, sp)
+	err = t.Prove(receipt1Key, memoryDB)
 	if err != nil {
 		panic(err)
 	}
 
+	// Print the proof
 	log.Info("Created proof")
-	for _, proofElement := range sp.slice {
-		log.Info("Proof element", "element", hex.EncodeToString(proofElement))
+	it := memoryDB.NewIterator(nil, nil)
+	encodedProof := make([]string, 0)
+	for it.Next() {
+		key := it.Key()
+		value := it.Value()
+		log.Info("Proof element", "key", hex.EncodeToString(key), "value", hex.EncodeToString(value))
+		encodedProof = append(encodedProof, hex.EncodeToString(value))
 	}
+	log.Info("Encoded proof", "proof", encodedProof)
 
+	// Verify the proof
+	val, err := trie.VerifyProof(root, receipt1Key, memoryDB)
+	if err != nil {
+		panic(err)
+	}
+	log.Info("Verified proof", "key", hex.EncodeToString(receipt1Key), "value", hex.EncodeToString(val))
 }
