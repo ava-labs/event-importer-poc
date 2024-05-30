@@ -17,3 +17,9 @@
 [submodule "contracts/lib/solidity-merkle-trees"]
 	path = contracts/lib/solidity-merkle-trees
 	url = https://github.com/polytope-labs/solidity-merkle-trees
+[submodule "contracts/proof-verifier/lib"]
+	path = contracts/proof-verifier/lib
+	url = https://github.com/foundry-rs/forge-std
+[submodule "contracts/lib/forge-std"]
+	path = contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
