@@ -14,3 +14,6 @@
 [submodule "contracts/lib/teleporter"]
 	path = contracts/lib/teleporter
 	url = https://github.com/ava-labs/teleporter
+[submodule "contracts/lib/solidity-merkle-trees"]
+	path = contracts/lib/solidity-merkle-trees
+	url = https://github.com/polytope-labs/solidity-merkle-trees
