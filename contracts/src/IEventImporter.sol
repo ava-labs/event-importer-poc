@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.17;
 
+/*
+ * @notice Struct representing an EVM block header.
+ * Note: The block header format may vary between chains with different VM implementations (i.e. subnet-evm vs coreth).
+*/
 struct EVMBlockHeader {
     bytes32 parentHash;
     bytes32 sha3Uncles;
@@ -22,12 +26,18 @@ struct EVMBlockHeader {
     uint256 blockGasCost;
 }
 
+/*
+ * @notice Struct representing an EVM event log.
+ */
 struct EVMLog {
     address loggerAddress;
     bytes32[] topics;
     bytes data;
 }
 
+/*
+ * @notice Struct representing an EVM transaction receipt.
+ */
 struct EVMReceipt {
     bool status;
     uint64 cululativeGasUsed;
@@ -35,6 +45,9 @@ struct EVMReceipt {
     EVMLog[] logs;
 }
 
+/*
+ * @notice Struct representing an EVM event log and its associated metadata.
+ */
 struct EVMEventInfo {
     bytes32 blockchainID;
     uint256 blockNumber;
@@ -45,12 +58,12 @@ struct EVMEventInfo {
 
 interface IEventImporter {
     /*
-     * @notice 1. Imports a block hash from another blockchain via Warp.
+     * @notice Imports an event log from another blockchain.
+     * 1. Imports a block hash from another blockchain via Warp.
      * 2. Verifies that the provided blockHeader matches the authenticated block hash.
      * 3. Gets the receipt at the given transaction index by verifying the merkle proof against the block header's receipt root.
      * 4. Decodes and returns the log at the given log index from the receipt.
      */
     function importEvent(bytes calldata blockHeader, uint256 txIndex, bytes[] calldata receiptProof, uint256 logIndex)
-        external
-        returns (EVMEventInfo memory);
+        external;
 }

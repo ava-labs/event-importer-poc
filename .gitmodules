@@ -11,3 +11,6 @@
 [submodule "proof-verifier/lib/subnet-evm"]
 	path = proof-verifier/lib/subnet-evm
 	url = https://github.com/ava-labs/subnet-evm
+[submodule "contracts/lib/teleporter"]
+	path = contracts/lib/teleporter
+	url = https://github.com/ava-labs/teleporter
