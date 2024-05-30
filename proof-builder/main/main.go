@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = t.Prove(receipt1Key, memoryDB)
+	err = t.Prove(receipt1Key, 0, memoryDB)
 	if err != nil {
 		panic(err)
 	}

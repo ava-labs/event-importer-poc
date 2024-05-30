@@ -11,11 +11,12 @@ REPO_PATH=$(
 
 source $REPO_PATH/scripts/constants.sh
 source $REPO_PATH/scripts/versions.sh
+source $TELEPORTER_PATH/scripts/utils.sh
 
 setARCH
 
 # Contract names to generate Go bindings for
-DEFAULT_CONTRACT_LIST="MockPriceFeed IEventImporter EventImporter"
+DEFAULT_CONTRACT_LIST="MockPriceFeedAggregator IEventImporter EventImporter"
 
 CONTRACT_LIST=
 HELP=
