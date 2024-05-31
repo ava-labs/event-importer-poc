@@ -3,7 +3,10 @@ package flows
 import (
 	"context"
 
+	"github.com/ava-labs/coreth/accounts/abi/bind"
 	"github.com/ava-labs/receipt-proof-poc/abi-bindings/go/mocks/mockpricefeedaggregator"
+	mockpricefeedaggregator "github.com/ava-labs/receipt-proofs-poc/abi-bindings/go/mocks/MockPriceFeedAggregator"
+	mockpricefeedaggregator "github.com/ava-labs/receipt-proofs-poc/abi-bindings/go/MockPriceFeedAggregator"
 	"github.com/ava-labs/teleporter/tests/interfaces"
 	teleporterUtils "github.com/ava-labs/teleporter/tests/utils"
 	. "github.com/onsi/gomega"
@@ -26,9 +29,19 @@ func ImportPriceFeed(network interfaces.Network) {
 	ctx := context.Background()
 
 	// Deploy Mock Price Feed contract on C-Chain
-	mockPriceFeedAggregator, err := mockpricefeedaggregator.NewMockPriceFeedAggregator(fundedAddress, network.GetCChainClient())
+	cChainTransactorOpts, err := bind.NewKeyedTransactorWithChainID(fundedKey, cChainInfo.EVMChainID)
+	Expect(err).Should(BeNil())
+	mockPriceFeedAggregatorAddress, tx, mockPriceFeedAggregator, err := mockpricefeedaggregator.DeployMockPriceFeedAggregator(
+		cChainTransactorOpts,
+		cChainInfo.RPCClient,
+	)
+	Expect(err).Should(BeNil())
+	teleporterUtils.WaitForTransactionSuccess(ctx, cChainInfo, tx.Hash())
 
 	// Deploy Price Feed Importer contract on Subnet A
+	subnetATransactorOpts, err := bind.NewKeyedTransactorWithChainID(fundedKey, subnetAInfo.EVMChainID)
+	Expect(err).Should(BeNil())
+	priceFeedImporterAddress, tx, priceFeedImporter, err := 
 
 	// Update the Mock Price Feed contract on C-Chain
 

@@ -61,7 +61,8 @@ interface IEventImporter {
      * @notice Imports an event log from another blockchain.
      * 1. Imports a block hash from another blockchain via Warp.
      * 2. Verifies that the provided blockHeader matches the authenticated block hash.
-     * 3. Gets the receipt at the given transaction index by verifying the merkle proof against the block header's receipt root.
+     * 3. Gets the receipt at the given transaction index by verifying the merkle proof against 
+     *    the block header's receipt root.
      * 4. Decodes and returns the log at the given log index from the receipt.
      */
     function importEvent(bytes calldata blockHeader, uint256 txIndex, bytes[] calldata receiptProof, uint256 logIndex)
