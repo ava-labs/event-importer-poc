@@ -16,7 +16,7 @@ source $TELEPORTER_PATH/scripts/utils.sh
 setARCH
 
 # Contract names to generate Go bindings for
-DEFAULT_CONTRACT_LIST="MockPriceFeedAggregator IEventImporter EventImporter"
+DEFAULT_CONTRACT_LIST="MockPriceFeedAggregator IEventImporter EventImporter PriceFeedImporter"
 
 CONTRACT_LIST=
 HELP=

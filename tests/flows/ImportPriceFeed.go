@@ -2,11 +2,11 @@ package flows
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/ava-labs/coreth/accounts/abi/bind"
-	"github.com/ava-labs/receipt-proof-poc/abi-bindings/go/mocks/mockpricefeedaggregator"
-	mockpricefeedaggregator "github.com/ava-labs/receipt-proofs-poc/abi-bindings/go/mocks/MockPriceFeedAggregator"
-	mockpricefeedaggregator "github.com/ava-labs/receipt-proofs-poc/abi-bindings/go/MockPriceFeedAggregator"
+	mockpricefeedaggregator "github.com/ava-labs/receipt-proofs-poc/abi-bindings/go/mocks/mockpricefeedaggregator"
+	pricefeedimporter "github.com/ava-labs/receipt-proofs-poc/abi-bindings/go/pricefeedimporter"
 	"github.com/ava-labs/teleporter/tests/interfaces"
 	teleporterUtils "github.com/ava-labs/teleporter/tests/utils"
 	. "github.com/onsi/gomega"
@@ -41,9 +41,10 @@ func ImportPriceFeed(network interfaces.Network) {
 	// Deploy Price Feed Importer contract on Subnet A
 	subnetATransactorOpts, err := bind.NewKeyedTransactorWithChainID(fundedKey, subnetAInfo.EVMChainID)
 	Expect(err).Should(BeNil())
-	priceFeedImporterAddress, tx, priceFeedImporter, err := 
+	priceFeedImporterAddress, tx, priceFeedImporter, err := pricefeedimporter.DeployPriceFeedImporter(subnetATransactorOpts, subnetAInfo.RPCClient, cChainInfo.BlockchainID, mockPriceFeedAggregatorAddress)
 
 	// Update the Mock Price Feed contract on C-Chain
+	mockValue := big.NewInt(12121212121212)
 
 	// Get a Warp signature of the block hash containing the AnswerUpdated event
 
