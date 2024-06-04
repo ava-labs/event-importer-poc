@@ -12,7 +12,11 @@ library RLPUtils {
     using RLPReader for RLPReader.RLPItem;
 
     function decodeReceipt(bytes memory encodedReceipt) internal pure returns (EVMReceipt memory) {
-        RLPReader.RLPItem[] memory receipt = encodedReceipt.toRlpItem().toList();
+        RLPReader.RLPItem memory receiptItem = encodedReceipt.toRlpItem();
+        RLPReader.RLPItem[] memory receipt;
+        if (receiptItem.isList()) {
+            receipt = receiptItem.toList();
+        } else {}
         require(receipt.length == 4, "Invalid number of RLP elements in receipt");
         EVMReceipt memory evmReceipt;
         evmReceipt.status = receipt[0].toUint() == 1;

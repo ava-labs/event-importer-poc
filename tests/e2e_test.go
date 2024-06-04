@@ -7,6 +7,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/ava-labs/receipt-proofs-poc/tests/flows"
+
 	"github.com/ava-labs/teleporter/tests/local"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,15 +17,8 @@ import (
 )
 
 const (
-	warpGenesisFile = "./tests/utils/warp-genesis.json"
-
-	erc20TokenHubLabel    = "ERC20TokenHub"
-	erc20TokenSpokeLabel  = "ERC20TokenSpoke"
-	nativeTokenHubLabel   = "NativeTokenHub"
-	nativeTokenSpokeLabel = "NativeTokenSpoke"
-	multiHopLabel         = "MultiHop"
-	sendAndCallLabel      = "SendAndCall"
-	registrationLabel     = "Registration"
+	warpGenesisFile      = "./tests/utils/warp-genesis.json"
+	importPriceFeedLabal = "ImportPriceFeed"
 )
 
 var LocalNetworkInstance *local.LocalNetwork
@@ -40,7 +36,9 @@ func TestE2E(t *testing.T) {
 // Define the Teleporter before and after suite functions.
 var _ = ginkgo.BeforeSuite(func() {
 	// Create the local network instance
-	LocalNetworkInstance = local.NewLocalNetwork(warpGenesisFile)
+	logLevel, err := logging.ToLevel("DEBUG")
+	Expect(err).Should(BeNil())
+	LocalNetworkInstance = local.NewLocalNetwork(warpGenesisFile, logLevel)
 
 })
 
@@ -48,11 +46,11 @@ var _ = ginkgo.AfterSuite(func() {
 	LocalNetworkInstance.TearDownNetwork()
 })
 
-var _ = ginkgo.Describe("[Teleporter Token Bridge integration tests]", func() {
-	ginkgo.It("Bridge an ERC20 token between two Subnets",
-		ginkgo.Label(erc20TokenHubLabel, erc20TokenSpokeLabel),
+var _ = ginkgo.Describe("[Event importing integration tests]", func() {
+	ginkgo.It("Import price feed event",
+		ginkgo.Label(importPriceFeedLabal),
 		func() {
-			return
+			flows.ImportPriceFeed(LocalNetworkInstance)
 		})
 
 })

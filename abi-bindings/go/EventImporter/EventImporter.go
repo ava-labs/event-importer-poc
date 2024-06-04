@@ -31,7 +31,7 @@ var (
 
 // EventImporterMetaData contains all meta data concerning the EventImporter contract.
 var EventImporterMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"blockHeader\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"txIndex\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"receiptProof\",\"type\":\"bytes[]\"},{\"internalType\":\"uint256\",\"name\":\"logIndex\",\"type\":\"uint256\"}],\"name\":\"importEvent\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"warpMessenger\",\"outputs\":[{\"internalType\":\"contractIWarpMessenger\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"receipt\",\"type\":\"bytes\"}],\"name\":\"ReceivedGot\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"blockHeader\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"txIndex\",\"type\":\"uint256\"},{\"internalType\":\"bytes[]\",\"name\":\"receiptProof\",\"type\":\"bytes[]\"},{\"internalType\":\"uint256\",\"name\":\"logIndex\",\"type\":\"uint256\"}],\"name\":\"importEvent\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"warpMessenger\",\"outputs\":[{\"internalType\":\"contractIWarpMessenger\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // EventImporterABI is the input ABI used to generate the binding from.
@@ -230,4 +230,138 @@ func (_EventImporter *EventImporterSession) ImportEvent(blockHeader []byte, txIn
 // Solidity: function importEvent(bytes blockHeader, uint256 txIndex, bytes[] receiptProof, uint256 logIndex) returns()
 func (_EventImporter *EventImporterTransactorSession) ImportEvent(blockHeader []byte, txIndex *big.Int, receiptProof [][]byte, logIndex *big.Int) (*types.Transaction, error) {
 	return _EventImporter.Contract.ImportEvent(&_EventImporter.TransactOpts, blockHeader, txIndex, receiptProof, logIndex)
+}
+
+// EventImporterReceivedGotIterator is returned from FilterReceivedGot and is used to iterate over the raw logs and unpacked data for ReceivedGot events raised by the EventImporter contract.
+type EventImporterReceivedGotIterator struct {
+	Event *EventImporterReceivedGot // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *EventImporterReceivedGotIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(EventImporterReceivedGot)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(EventImporterReceivedGot)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *EventImporterReceivedGotIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *EventImporterReceivedGotIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// EventImporterReceivedGot represents a ReceivedGot event raised by the EventImporter contract.
+type EventImporterReceivedGot struct {
+	Receipt []byte
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterReceivedGot is a free log retrieval operation binding the contract event 0xefd76080ce92f59b8e1641ac35724b1074df2b3d57377cf1c8693865800f05c8.
+//
+// Solidity: event ReceivedGot(bytes receipt)
+func (_EventImporter *EventImporterFilterer) FilterReceivedGot(opts *bind.FilterOpts) (*EventImporterReceivedGotIterator, error) {
+
+	logs, sub, err := _EventImporter.contract.FilterLogs(opts, "ReceivedGot")
+	if err != nil {
+		return nil, err
+	}
+	return &EventImporterReceivedGotIterator{contract: _EventImporter.contract, event: "ReceivedGot", logs: logs, sub: sub}, nil
+}
+
+// WatchReceivedGot is a free log subscription operation binding the contract event 0xefd76080ce92f59b8e1641ac35724b1074df2b3d57377cf1c8693865800f05c8.
+//
+// Solidity: event ReceivedGot(bytes receipt)
+func (_EventImporter *EventImporterFilterer) WatchReceivedGot(opts *bind.WatchOpts, sink chan<- *EventImporterReceivedGot) (event.Subscription, error) {
+
+	logs, sub, err := _EventImporter.contract.WatchLogs(opts, "ReceivedGot")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(EventImporterReceivedGot)
+				if err := _EventImporter.contract.UnpackLog(event, "ReceivedGot", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseReceivedGot is a log parse operation binding the contract event 0xefd76080ce92f59b8e1641ac35724b1074df2b3d57377cf1c8693865800f05c8.
+//
+// Solidity: event ReceivedGot(bytes receipt)
+func (_EventImporter *EventImporterFilterer) ParseReceivedGot(log types.Log) (*EventImporterReceivedGot, error) {
+	event := new(EventImporterReceivedGot)
+	if err := _EventImporter.contract.UnpackLog(event, "ReceivedGot", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }

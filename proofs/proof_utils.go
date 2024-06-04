@@ -1,24 +1,25 @@
-package proofutils
+package proofs
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
 
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/ethclient"
 	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-func constructReceiptProof(
+func ConstructReceiptProof(
 	ctx context.Context,
 	ethClient ethclient.Client,
 	blockHash common.Hash,
 	txIndex uint,
-) (ethdb.KeyValueReader, error) {
+) (*memorydb.Database, error) {
 	// Get the block info
 	blockInfo, err := ethClient.BlockByHash(ctx, blockHash)
 	if err != nil || blockInfo == nil {
@@ -27,7 +28,7 @@ func constructReceiptProof(
 	}
 	if blockInfo.Hash() != blockHash {
 		log.Error("Block hash does not match", "blockHash", blockHash.String())
-		return nil, err
+		return nil, fmt.Errorf("block hash does not match")
 	}
 
 	// Get the receipts for each transaction in the block
@@ -39,6 +40,12 @@ func constructReceiptProof(
 			return nil, err
 		}
 		receipts[i] = receipt
+		encodedReceipt, err := rlp.EncodeToBytes(receipt)
+		if err != nil {
+			log.Error("Failed to encode receipt", "txHash", tx.Hash().String(), "err", err)
+			return nil, err
+		}
+		log.Info("Got encoded receipt", "txHash", tx.Hash().String(), "receipt", hex.EncodeToString(encodedReceipt))
 	}
 
 	// Create a trie of the receipts
@@ -70,11 +77,12 @@ func constructReceiptProof(
 	}
 
 	// Double check that the proof is valid.
-	_, err = trie.VerifyProof(receiptsRoot, key, memoryDB)
+	verifiedValue, err := trie.VerifyProof(receiptsRoot, key, memoryDB)
 	if err != nil {
 		log.Error("Failed to verify proof", "err", err)
 		return nil, err
 	}
+	log.Info("Verified proof", "value", hex.EncodeToString(verifiedValue))
 
 	return memoryDB, nil
 }

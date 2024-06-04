@@ -19,6 +19,8 @@ abstract contract EventImporter is IEventImporter {
         warpMessenger = IWarpMessenger(0x0200000000000000000000000000000000000005);
     }
 
+    event ReceivedGot(bytes receipt);
+
     /*
      * @notice Imports an event log from another blockchain.
      * 1. Imports a block hash from another blockchain via Warp.
@@ -48,6 +50,7 @@ abstract contract EventImporter is IEventImporter {
         require(results.length == 1, "Invalid number of results in receipt proof");
         require(results[0].value.length > 0, "Invalid receipt proof");
 
+        emit ReceivedGot(results[0].value);
         EVMReceipt memory receipt = RLPUtils.decodeReceipt(results[0].value);
         require(logIndex < receipt.logs.length, "Invalid log index");
 
