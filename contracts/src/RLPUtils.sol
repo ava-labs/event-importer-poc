@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Ecosystem
 
-pragma solidity ^0.8.17;
+pragma solidity 0.8.18;
 
 import {EVMLog, EVMReceipt, EVMBlockHeader} from "./IEventImporter.sol";
 import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
@@ -10,32 +10,59 @@ import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RlpReader.sol";
 library RLPUtils {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
+    using RLPReader for RLPReader.Iterator;
 
-    function decodeReceipt(bytes memory encodedReceipt) internal pure returns (EVMReceipt memory) {
-        RLPReader.RLPItem memory receiptItem = encodedReceipt.toRlpItem();
-        RLPReader.RLPItem[] memory receipt;
-        if (receiptItem.isList()) {
-            receipt = receiptItem.toList();
-        } else {}
-        require(receipt.length == 4, "Invalid number of RLP elements in receipt");
-        EVMReceipt memory evmReceipt;
-        evmReceipt.status = receipt[0].toUint() == 1;
-        evmReceipt.cululativeGasUsed = uint64(receipt[1].toUint());
-        evmReceipt.bloom = receipt[2].toBytes();
-        RLPReader.RLPItem[] memory logs = receipt[3].toList();
-        evmReceipt.logs = new EVMLog[](logs.length);
-        for (uint256 i = 0; i < logs.length; i++) {
-            RLPReader.RLPItem[] memory log = logs[i].toList();
-            require(log.length == 3, "Invalid number of RLP elements in log");
-            evmReceipt.logs[i].loggerAddress = log[0].toAddress();
-            RLPReader.RLPItem[] memory topics = log[1].toList();
-            evmReceipt.logs[i].topics = new bytes32[](topics.length);
-            for (uint256 j = 0; j < topics.length; j++) {
-                evmReceipt.logs[i].topics[j] = bytes32(topics[j].toBytes());
+    function decodeReceipt(RLPReader.RLPItem memory encodedReceipt) internal pure returns (EVMReceipt memory) {
+        // If the encoded receipt is not a list, then the first byte is the transaction type,
+        // followed by the RLP encoding of the receipt afterwards. If encoded receipt is already
+        // a list itself, then the transaction type is 0 (legacy tx).
+        uint8 txType;
+        if (!encodedReceipt.isList()) {
+            uint256 memptr = encodedReceipt.memPtr;
+            assembly {
+                txType := byte(0, mload(memptr))
             }
-            evmReceipt.logs[i].data = log[2].toBytes();
+            require(txType == 1 || txType == 2, "Invalid tx type for non-legacy tx");
+            encodedReceipt = RLPReader.RLPItem({len: encodedReceipt.len - 1, memPtr: encodedReceipt.memPtr + 1});
         }
-        return evmReceipt;
+
+        // Four items in every receipt are:
+        // 1. Post-state or status
+        // 2. Cumulative gas used
+        // 3. Bloom filter
+        // 4. Logs
+        RLPReader.RLPItem[] memory receiptItems = encodedReceipt.toList();
+        require(receiptItems.length == 4, "Invalid number of RLP elements in receipt");
+        EVMReceipt memory result;
+        result.txType = txType;
+        result.postStateOrStatus = receiptItems[0].toBytes();
+        result.cululativeGasUsed = uint64(receiptItems[1].toUint());
+        result.bloom = receiptItems[2].toBytes();
+        RLPReader.RLPItem[] memory logs = receiptItems[3].toList();
+        result.logs = new EVMLog[](logs.length);
+        for (uint256 i = 0; i < logs.length; i++) {
+            result.logs[i] = decodeLog(logs[i]);
+        }
+
+        return result;
+    }
+
+    function decodeLog(RLPReader.RLPItem memory encodedLog) internal pure returns (EVMLog memory) {
+        RLPReader.RLPItem[] memory log = encodedLog.toList();
+        // Three items in every receipt are:
+        // 1. Address of the logger
+        // 2. Log topics, of which there is always at least one (the event signature)
+        // 3. Log data (arbitrary bytes)
+        require(log.length == 3, "Invalid number of RLP elements in log");
+        EVMLog memory evmLog;
+        evmLog.loggerAddress = log[0].toAddress();
+        RLPReader.RLPItem[] memory topics = log[1].toList();
+        evmLog.topics = new bytes32[](topics.length);
+        for (uint256 i = 0; i < topics.length; i++) {
+            evmLog.topics[i] = bytes32(topics[i].toBytes());
+        }
+        evmLog.data = log[2].toBytes();
+        return evmLog;
     }
 
     function decodeBlockNumberAndReceiptsRoot(bytes memory encodedBlockHeader)

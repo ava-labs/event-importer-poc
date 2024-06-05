@@ -52,7 +52,7 @@ func ImportPriceFeed(network interfaces.Network) {
 	// Deploy Price Feed Importer contract on Subnet A
 	subnetATransactorOpts, err := bind.NewKeyedTransactorWithChainID(fundedKey, subnetAInfo.EVMChainID)
 	Expect(err).Should(BeNil())
-	priceFeedImporterAddress, deployPriceFeedImporterTx, _, err := pricefeedimporter.DeployPriceFeedImporter(subnetATransactorOpts, subnetAInfo.RPCClient, cChainInfo.BlockchainID, mockPriceFeedAggregatorAddress)
+	priceFeedImporterAddress, deployPriceFeedImporterTx, priceFeedImporter, err := pricefeedimporter.DeployPriceFeedImporter(subnetATransactorOpts, subnetAInfo.RPCClient, cChainInfo.BlockchainID, mockPriceFeedAggregatorAddress)
 	Expect(err).Should(BeNil())
 	teleporterUtils.WaitForTransactionSuccess(ctx, subnetAInfo, deployPriceFeedImporterTx.Hash())
 	log.Info("Created Price Feed Importer contract", "address", priceFeedImporterAddress.Hex())
@@ -120,5 +120,7 @@ func ImportPriceFeed(network interfaces.Network) {
 	err = subnetAInfo.RPCClient.SendTransaction(ctx, signedImportEventTx)
 	Expect(err).Should(BeNil())
 	importEventReceipt := teleporterUtils.WaitForTransactionSuccess(ctx, subnetAInfo, signedImportEventTx.Hash())
-	log.Info("SUCCESS?!?!?!?", "importEventReceipt", importEventReceipt)
+	_, answerUpdatedLog, err := utils.GetEventFromLogs(importEventReceipt.Logs, priceFeedImporter.ParseAnswerUpdated)
+	Expect(err).Should(BeNil())
+	log.Info("Successfully imported event to update price feed", "txReceipt", importEventReceipt, "log", answerUpdatedLog)
 }

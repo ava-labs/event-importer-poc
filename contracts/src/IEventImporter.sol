@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Ecosystem
 
-pragma solidity ^0.8.17;
+pragma solidity 0.8.18;
 
 /*
  * @notice Struct representing an EVM block header.
@@ -39,7 +39,8 @@ struct EVMLog {
  * @notice Struct representing an EVM transaction receipt.
  */
 struct EVMReceipt {
-    bool status;
+    uint8 txType;
+    bytes postStateOrStatus;
     uint64 cululativeGasUsed;
     bytes bloom;
     EVMLog[] logs;

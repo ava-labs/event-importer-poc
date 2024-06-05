@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Ecosystem
 
-pragma solidity ^0.8.17;
+pragma solidity 0.8.18;
 
 import {EVMEventInfo, EVMLog, EVMReceipt, EVMBlockHeader, IEventImporter} from "./IEventImporter.sol";
 import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
 import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
+import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RlpReader.sol";
 import {RLPUtils} from "./RLPUtils.sol";
 
 /**
@@ -13,13 +14,13 @@ import {RLPUtils} from "./RLPUtils.sol";
  * Inheriting contracts must implement the _onEventImport function to handle event imports.
  */
 abstract contract EventImporter is IEventImporter {
+    using RLPReader for bytes;
+
     IWarpMessenger public warpMessenger;
 
     constructor() {
         warpMessenger = IWarpMessenger(0x0200000000000000000000000000000000000005);
     }
-
-    event ReceivedGot(bytes receipt);
 
     /*
      * @notice Imports an event log from another blockchain.
@@ -50,8 +51,7 @@ abstract contract EventImporter is IEventImporter {
         require(results.length == 1, "Invalid number of results in receipt proof");
         require(results[0].value.length > 0, "Invalid receipt proof");
 
-        emit ReceivedGot(results[0].value);
-        EVMReceipt memory receipt = RLPUtils.decodeReceipt(results[0].value);
+        EVMReceipt memory receipt = RLPUtils.decodeReceipt(results[0].value.toRlpItem());
         require(logIndex < receipt.logs.length, "Invalid log index");
 
         _onEventImport(
