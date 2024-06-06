@@ -1,6 +1,6 @@
 # Cross-Chain EVM Event Importing
 
-> **TL;DR: This repo contains example Solidity contracts and Golang utilies for importing arbitrary EVM event logs emitted by chains on other Subnets. It uses Avalanche Warp Messaging to authenticate a block hash from a chain in another Subnet, and Merkle proofs to validate that the event to be imported was emitted in that block.**
+> **TL;DR: This repo is a proof-of-concept for how to import arbitrary EVM event logs emitted by chains on other Subnets. It uses Avalanche Warp Messaging to authenticate a block hash from a chain in another Subnet, and Merkle proofs to validate that the event to be imported was emitted in that block.**
 
 [Avalanche Warp Messaging](https://docs.avax.network/build/cross-chain/awm/overview) (AWM) allows for Subnets to validate that arbitrary messages have been signed by a configurable threshold of current stake weight of other Subnets. Currently, the most common type of cross-chain interaction involves a source chain transaction which sends a message, and a destination chain transaction which delivers the message. In the case of AWM, the source chain transaction would call the Warp precompile `sendWarpMessage` interface function, and the destination chain transaction would call the Warp precompile `getVerifiedWarpMessage` interface function.
 
@@ -47,7 +47,7 @@ This could be used to:
     - etc
 - Import event feeds from other chains such as price feeds.
 
-## (Likely) Components
+## Open Questions by Component
 ### Solidity Contract Utilities
 
 #### Requirements 
