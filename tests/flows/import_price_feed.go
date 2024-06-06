@@ -2,19 +2,11 @@ package flows
 
 import (
 	"context"
-	"encoding/hex"
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/coreth/ethclient"
-	pricefeedimporter "github.com/ava-labs/receipt-proofs-poc/abi-bindings/go/PriceFeedImporter"
-	mockpricefeedaggregator "github.com/ava-labs/receipt-proofs-poc/abi-bindings/go/mocks/MockPriceFeedAggregator"
 	proofutils "github.com/ava-labs/receipt-proofs-poc/proofs"
 	"github.com/ava-labs/receipt-proofs-poc/tests/utils"
-	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	predicateutils "github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/teleporter/tests/interfaces"
 	teleporterUtils "github.com/ava-labs/teleporter/tests/utils"
 	"github.com/ethereum/go-ethereum/log"
@@ -39,31 +31,15 @@ func ImportPriceFeed(network interfaces.Network) {
 	ctx := context.Background()
 
 	// Deploy Mock Price Feed contract on C-Chain
-	cChainTransactorOpts, err := bind.NewKeyedTransactorWithChainID(fundedKey, cChainInfo.EVMChainID)
-	Expect(err).Should(BeNil())
-	mockPriceFeedAggregatorAddress, deployMockPriceFeedTx, mockPriceFeedAggregator, err := mockpricefeedaggregator.DeployMockPriceFeedAggregator(
-		cChainTransactorOpts,
-		cChainInfo.RPCClient,
-	)
-	Expect(err).Should(BeNil())
-	teleporterUtils.WaitForTransactionSuccess(ctx, cChainInfo, deployMockPriceFeedTx.Hash())
-	log.Info("Created Mock Price Feed contract", "address", mockPriceFeedAggregatorAddress.Hex())
+	mockPriceFeedAggegratorAddress, mockPriceFeedAggregator := utils.DeployMockPriceFeedAggregator(ctx, fundedKey, cChainInfo)
 
 	// Deploy Price Feed Importer contract on Subnet A
-	subnetATransactorOpts, err := bind.NewKeyedTransactorWithChainID(fundedKey, subnetAInfo.EVMChainID)
-	Expect(err).Should(BeNil())
-	priceFeedImporterAddress, deployPriceFeedImporterTx, priceFeedImporter, err := pricefeedimporter.DeployPriceFeedImporter(subnetATransactorOpts, subnetAInfo.RPCClient, cChainInfo.BlockchainID, mockPriceFeedAggregatorAddress)
-	Expect(err).Should(BeNil())
-	teleporterUtils.WaitForTransactionSuccess(ctx, subnetAInfo, deployPriceFeedImporterTx.Hash())
-	log.Info("Created Price Feed Importer contract", "address", priceFeedImporterAddress.Hex())
+	priceFeedImporterAddress, priceFeedImporter := utils.DeployPriceFeedImporter(ctx, fundedKey, subnetAInfo, cChainInfo.BlockchainID, mockPriceFeedAggegratorAddress)
 
 	// Update the Mock Price Feed contract on C-Chain
 	mockRound := big.NewInt(42)
 	mockAnswer := big.NewInt(121212121212)
-	updateAnswerTx, err := mockPriceFeedAggregator.UpdateAnswer(cChainTransactorOpts, mockAnswer, mockRound, big.NewInt(time.Now().Unix()))
-	Expect(err).Should(BeNil())
-	updateAnswerReceipt := teleporterUtils.WaitForTransactionSuccess(ctx, cChainInfo, updateAnswerTx.Hash())
-	log.Info("Updated Mock Price Feed contract", "txHash", updateAnswerTx.Hash().Hex())
+	updateAnswerReceipt := utils.UpdateMockPriceFeedAnswer(ctx, fundedKey, cChainInfo, mockPriceFeedAggregator, mockRound, mockAnswer)
 
 	// Get the block header
 	// Create a custom coreth client so that the block hash from the C-Chain is correct
@@ -79,47 +55,32 @@ func ImportPriceFeed(network interfaces.Network) {
 	signedBlockHashMessage := utils.GetSignedBlockHashMessage(ctx, cChainInfo, subnetAInfo.SubnetID, updateAnswerReceipt.BlockHash)
 
 	// Construct a Merkle proof of the AnswerUpdated event agains the block's receipts root
-	proofDB, err := proofutils.ConstructReceiptProof(ctx, corethClient, updateAnswerReceipt.BlockHash, updateAnswerReceipt.TransactionIndex)
+	proofDB, err := proofutils.ConstructCorethReceiptProof(ctx, corethClient, updateAnswerReceipt.BlockHash, updateAnswerReceipt.TransactionIndex)
 	Expect(err).Should(BeNil())
-	encodedProof := make([][]byte, 0)
-	it := proofDB.NewIterator(nil, nil)
-	for it.Next() {
-		encodedProof = append(encodedProof, it.Value())
-	}
-	for _, proofElem := range encodedProof {
-		log.Info("Encoded proof elem", "proofElem", hex.EncodeToString(proofElem))
-	}
+	encodedProof := proofutils.EncodeMerkleProof(proofDB)
 
 	// Get the log index of the AnswerUpdated event
 	answerUpdatedLogIndex, _, err := utils.GetEventFromLogs(updateAnswerReceipt.Logs, mockPriceFeedAggregator.ParseAnswerUpdated)
 	Expect(err).Should(BeNil())
 
 	// Import the AnswerUpdated event into the Price Feed Importer contract on Subnet A
-	priceFeedImporterABI, err := pricefeedimporter.PriceFeedImporterMetaData.GetAbi()
-	Expect(err).Should(BeNil())
-	importEventData, err := priceFeedImporterABI.Pack("importEvent", encodedHeader, big.NewInt(int64(updateAnswerReceipt.TransactionIndex)), encodedProof, big.NewInt(int64(answerUpdatedLogIndex)))
-	Expect(err).Should(BeNil())
-	gasFeeCap, gasTipCap, nonce := teleporterUtils.CalculateTxParams(ctx, subnetAInfo, fundedAddress)
-	unsignedImportEventTx := predicateutils.NewPredicateTx(
-		subnetAInfo.EVMChainID,
-		nonce,
-		&priceFeedImporterAddress,
-		3_000_000, // TODO: How much gas is needed?
-		gasFeeCap,
-		gasTipCap,
-		big.NewInt(0),
-		importEventData,
-		types.AccessList{},
-		warp.ContractAddress,
+	importEventTx := utils.ConstructImportEventTransaction(
+		ctx,
+		fundedKey,
+		fundedAddress,
+		subnetAInfo,
+		priceFeedImporterAddress,
 		signedBlockHashMessage,
+		encodedHeader,
+		updateAnswerReceipt.TransactionIndex,
+		encodedProof,
+		answerUpdatedLogIndex,
 	)
-	signedImportEventTx := teleporterUtils.SignTransaction(unsignedImportEventTx, fundedKey, subnetAInfo.EVMChainID)
-	encodedTx, err := rlp.EncodeToBytes(signedImportEventTx)
+
+	// Send the transaction and check that it includes the expected log.
+	err = subnetAInfo.RPCClient.SendTransaction(ctx, importEventTx)
 	Expect(err).Should(BeNil())
-	log.Info("Created signed tx to import event", "txHash", signedImportEventTx.Hash().Hex(), "rawTx", hex.EncodeToString(encodedTx))
-	err = subnetAInfo.RPCClient.SendTransaction(ctx, signedImportEventTx)
-	Expect(err).Should(BeNil())
-	importEventReceipt := teleporterUtils.WaitForTransactionSuccess(ctx, subnetAInfo, signedImportEventTx.Hash())
+	importEventReceipt := teleporterUtils.WaitForTransactionSuccess(ctx, subnetAInfo, importEventTx.Hash())
 	_, answerUpdatedLog, err := utils.GetEventFromLogs(importEventReceipt.Logs, priceFeedImporter.ParseAnswerUpdated)
 	Expect(err).Should(BeNil())
 	log.Info("Successfully imported event to update price feed", "txReceipt", importEventReceipt, "log", answerUpdatedLog)

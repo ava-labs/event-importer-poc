@@ -181,3 +181,12 @@ func ConstructSubnetEVMReceiptProof(
 
 	return memoryDB, nil
 }
+
+func EncodeMerkleProof(proofDB *memorydb.Database) [][]byte {
+	encodedProof := make([][]byte, 0)
+	it := proofDB.NewIterator(nil, nil)
+	for it.Next() {
+		encodedProof = append(encodedProof, it.Value())
+	}
+	return encodedProof
+}
