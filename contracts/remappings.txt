@@ -1,0 +1,2 @@
+@solidity-merkle-trees=lib/solidity-merkle-trees/src/
+@subnet-evm=lib/teleporter/contracts/lib/subnet-evm/contracts/
