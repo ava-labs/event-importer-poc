@@ -6,7 +6,7 @@ require (
 	github.com/ava-labs/avalanchego v1.11.1
 	github.com/ava-labs/coreth v0.13.0-rc.0
 	github.com/ava-labs/subnet-evm v0.6.1
-	github.com/ava-labs/teleporter v1.0.2-0.20240603155257-13e4b0d717e6
+	github.com/ava-labs/teleporter v1.0.1
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1

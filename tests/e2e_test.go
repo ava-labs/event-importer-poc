@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/receipt-proofs-poc/tests/flows"
 
 	"github.com/ava-labs/teleporter/tests/local"
@@ -36,9 +35,7 @@ func TestE2E(t *testing.T) {
 // Define the Teleporter before and after suite functions.
 var _ = ginkgo.BeforeSuite(func() {
 	// Create the local network instance
-	logLevel, err := logging.ToLevel("DEBUG")
-	Expect(err).Should(BeNil())
-	LocalNetworkInstance = local.NewLocalNetwork(warpGenesisFile, logLevel)
+	LocalNetworkInstance = local.NewLocalNetwork(warpGenesisFile)
 
 })
 
