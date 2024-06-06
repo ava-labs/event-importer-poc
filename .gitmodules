@@ -4,6 +4,3 @@
 [submodule "contracts/lib/forge-std"]
 	path = contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "contracts/lib/solidity-merkle-trees"]
-	path = contracts/lib/solidity-merkle-trees
-	url = https://github.com/michaelkaplan13/solidity-merkle-trees
