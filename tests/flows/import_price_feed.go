@@ -1,3 +1,6 @@
+// Copyright (C) 2024, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package flows
 
 import (
@@ -31,15 +34,32 @@ func ImportPriceFeed(network interfaces.Network) {
 	ctx := context.Background()
 
 	// Deploy Mock Price Feed contract on C-Chain
-	mockPriceFeedAggegratorAddress, mockPriceFeedAggregator := utils.DeployMockPriceFeedAggregator(ctx, fundedKey, cChainInfo)
+	mockPriceFeedAggegratorAddress, mockPriceFeedAggregator := utils.DeployMockPriceFeedAggregator(
+		ctx,
+		fundedKey,
+		cChainInfo,
+	)
 
 	// Deploy Price Feed Importer contract on Subnet A
-	priceFeedImporterAddress, priceFeedImporter := utils.DeployPriceFeedImporter(ctx, fundedKey, subnetAInfo, cChainInfo.BlockchainID, mockPriceFeedAggegratorAddress)
+	priceFeedImporterAddress, priceFeedImporter := utils.DeployPriceFeedImporter(
+		ctx,
+		fundedKey,
+		subnetAInfo,
+		cChainInfo.BlockchainID,
+		mockPriceFeedAggegratorAddress,
+	)
 
 	// Update the Mock Price Feed contract on C-Chain
 	mockRound := big.NewInt(42)
 	mockAnswer := big.NewInt(121212121212)
-	updateAnswerReceipt := utils.UpdateMockPriceFeedAnswer(ctx, fundedKey, cChainInfo, mockPriceFeedAggregator, mockRound, mockAnswer)
+	updateAnswerReceipt := utils.UpdateMockPriceFeedAnswer(
+		ctx,
+		fundedKey,
+		cChainInfo,
+		mockPriceFeedAggregator,
+		mockRound,
+		mockAnswer,
+	)
 
 	// Get the block header
 	// Create a custom coreth client so that the block hash from the C-Chain is correct
@@ -52,15 +72,27 @@ func ImportPriceFeed(network interfaces.Network) {
 	Expect(err).Should(BeNil())
 
 	// Get a Warp signature of the block hash containing the AnswerUpdated event
-	signedBlockHashMessage := utils.GetSignedBlockHashMessage(ctx, cChainInfo, subnetAInfo.SubnetID, updateAnswerReceipt.BlockHash)
+	signedBlockHashMessage := utils.GetSignedBlockHashMessage(
+		ctx,
+		cChainInfo,
+		subnetAInfo.SubnetID,
+		updateAnswerReceipt.BlockHash,
+	)
 
-	// Construct a Merkle proof of the AnswerUpdated event agains the block's receipts root
-	proofDB, err := proofutils.ConstructCorethReceiptProof(ctx, corethClient, updateAnswerReceipt.BlockHash, updateAnswerReceipt.TransactionIndex)
+	// Construct a Merkle proof of the AnswerUpdated event against the block's receipts root
+	proofDB, err := proofutils.ConstructCorethReceiptProof(
+		ctx,
+		corethClient,
+		updateAnswerReceipt.BlockHash,
+		updateAnswerReceipt.TransactionIndex)
 	Expect(err).Should(BeNil())
 	encodedProof := proofutils.EncodeMerkleProof(proofDB)
 
 	// Get the log index of the AnswerUpdated event
-	answerUpdatedLogIndex, _, err := utils.GetEventFromLogs(updateAnswerReceipt.Logs, mockPriceFeedAggregator.ParseAnswerUpdated)
+	answerUpdatedLogIndex, _, err := utils.GetEventFromLogs(
+		updateAnswerReceipt.Logs,
+		mockPriceFeedAggregator.ParseAnswerUpdated,
+	)
 	Expect(err).Should(BeNil())
 
 	// Import the AnswerUpdated event into the Price Feed Importer contract on Subnet A
@@ -83,5 +115,9 @@ func ImportPriceFeed(network interfaces.Network) {
 	importEventReceipt := teleporterUtils.WaitForTransactionSuccess(ctx, subnetAInfo, importEventTx.Hash())
 	_, answerUpdatedLog, err := utils.GetEventFromLogs(importEventReceipt.Logs, priceFeedImporter.ParseAnswerUpdated)
 	Expect(err).Should(BeNil())
-	log.Info("Successfully imported event to update price feed", "txReceipt", importEventReceipt, "log", answerUpdatedLog)
+	log.Info(
+		"Successfully imported event to update price feed",
+		"txReceipt", importEventReceipt,
+		"log", answerUpdatedLog,
+	)
 }

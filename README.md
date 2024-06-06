@@ -34,48 +34,13 @@ The E2E test flow:
 4. Sends a transaction to update the price feed value on the C-Chain, as would be done by an oracle provider. 
 5. Imports the price feed update event into the Subnet by constructing a Warp signature of the block hash that it occured in on the C-Chain, constructing a Merkle proof for the transaction receipt the event was contained in, and broadcasting this information to the Subnet by calling the `importEvent` interface function of the `PriceFeedImporter` contract.
 
-# High Level Project Plan
-This repo is a proof-of-concept of the idea described above. In order to turn it into a production ready framework it needs to be expanded and made more robust.
-
-## Objective and Use Cases
-It should be incredibly easy for a new Subnet to securely receive event emissions and state changes from contracts on other chains. Unlike the `TeleporterMessenger` contracts which provide point-to-point messaging from one chain to another to be used in building cross-chain applications, this primitive allows for arbitrary data to be imported into a Subnet from other chains without any interaction required on the other chains.
-
-This could be used to:
-- Prove an address holds an NFT/NTT issued on other chains
-    - Could be used to give special access within games to holders of rare badges/coupons on other chains
-    - Could be used to build Avalanche-based ID/credentials
-    - etc
-- Import event feeds from other chains such as price feeds.
-
-## Open Questions by Component
-### Solidity Contract Utilities
-
-#### Requirements 
-The Solidity utility contract must support:
-- Receiving Warp block hash messages.
-- Taking an RLP encoded block header and verifying that it matches a block hash authenticated using Warp.
-- Verifying a Merkle proof of an RLP encoded receipt against the receipt root of a block header.
-- Verifying a Merkle proof of a contracts state against the state root of a block header.
-- RLP decoding of block headers and receipts.
-
-#### Open Questions and Considerations
-- Can/Should block hashes authenticated via Warp messaged be stored such that they can be used to prove arbitrarily many events going forward without having to re-verify a Warp aggregate signature?
-- Is the Merkle proof verification or RLP decoding too expensive gas-wise, and can they be optimized?
-- What frameworks should we have to decide which events are valid to be imported by an application? (i.e. strict ordering, most recent only, archival, etc)
-- Should we add a mechanism to define incentives for deliverers of events that meet certain criteria? Could we safely use the native minter precompile to guarantee profitability of deliverers (i.e. refund the transaction fee + some additional amount)?
-
-### Publisher Service and/or AWM Relayer Extension
-#### Requirements
-There should be an application that can be configured and run out-of-the-box to publish specified events to pre-configured event receiver contracts. There should be an API made available for UIs to fetch an aggregate signature of a block hash itself, such that users can easily send their own transactions to import events.
-
-#### Open Questions and Considerations
-- How can we ensure that a "get Warp signature" public API is not a DOS vector? Pre-emptively generate and cache signatures for blocks to serve on request?
-- Should a service to publish pre-configured events be embedded within the AWM relayer itself? Or should it be its own service/sidecar that is pointed to an API to be able to fetch Warp signatures when needed?
-- What are the necessary configuration settings?
-    - How to know which events to publish?
-    - How to know where to publish them to?
-    - How to check for profitability of publishing an event?
-
-
-
-
+## Open Questions and Considerations
+- Can/Should block hash authenticated via Warp messages be stored such that they can be used to prove arbitrarily many events going forward without having to re-verify a Warp aggregate signature?
+- Is the Merkle proof verification or RLP decoding prohibitively expensive gas-wise? Can they be optimized if so? How does gas usage scale with the number of receipts in the block including the event to be imported?
+- Is the delay from the time an event is emitted on a source chain to when it is imported on another chain a non-starter for certain applications? 
+    - For instance, when importing a price feed stream, it is known what the next value to be imported will be before it is actually imported.
+    - If yes, what is the acceptable delay, or how can the risk be mitigated? Note that some delay already exists in the single chain case from when the transaction hits the mempool of the source chain to when it gets included in a block.
+- How can relayers be incentivized to deliver new events that meet certain criteria?
+- What is the preferred mechanism for delivering events to be imported on other chains?
+    - Could take the form of a relayer application that listens for certain events and sends them along with the required proof to be imported to pre-configured chains and contracts.
+    - Could take the form of a public "get Warp block signature" API, that allows UIs to construct transactions importing events from other chains. In this model, users would import their own events from their wallet. The API service could potentially pre-emptively construct the aggregate signature for each block on the set of supported chains such that it can serve them on request without needing to query validators for their individual BLS signatures.

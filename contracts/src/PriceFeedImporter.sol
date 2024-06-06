@@ -1,8 +1,16 @@
+// (c) 2024, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 // SPDX-License-Identifier: Ecosystem
 
 pragma solidity 0.8.18;
 
 import {EVMEventInfo, EventImporter} from "./EventImporter.sol";
+
+/**
+ * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
+ * DO NOT USE THIS CODE IN PRODUCTION.
+ */
 
 /**
  * @notice An example EventImporter implementation that imports the latest price feed data from another blockchain.
@@ -28,6 +36,32 @@ contract PriceFeedImporter is EventImporter {
 
     // Event emitted when the answer is updated.
     event AnswerUpdated(int256 currentAnswer, uint80 roundID, uint256 updatedAt);
+
+    modifier _onlySourceOracleEvents(EVMEventInfo memory eventInfo) {
+        require(eventInfo.blockchainID == sourceBlockchainID, "Invalid blockchain ID");
+        require(eventInfo.log.loggerAddress == sourceOracleAggregator, "Invalid logger address");
+        _;
+    }
+
+    modifier _onlyValidAnswerUpdatedEvents(EVMEventInfo memory eventInfo) {
+        require(eventInfo.log.topics.length == 3, "Invalid log topics");
+        require(eventInfo.log.data.length == 32, "Invalid log data");
+        require(eventInfo.log.topics[0] == ANSWER_UPDATED_EVENT_SIGNATURE, "Invalid event signature");
+        _;
+    }
+
+    modifier _onlyMoreRecentEvents(EVMEventInfo memory eventInfo) {
+        require(
+            eventInfo.blockNumber >= latestSourceBlockNumber
+                && (eventInfo.blockNumber > latestSourceBlockNumber || eventInfo.txIndex > latestSourceTxIndex)
+                && (
+                    eventInfo.blockNumber > latestSourceBlockNumber || eventInfo.txIndex > latestSourceTxIndex
+                        || eventInfo.logIndex > latestSourceLogIndex
+                ),
+            "Stale event"
+        );
+        _;
+    }
 
     constructor(bytes32 sourceBlockchainID_, address sourceOracleAggregator_) {
         sourceBlockchainID = sourceBlockchainID_;
@@ -60,31 +94,5 @@ contract PriceFeedImporter is EventImporter {
         latestSourceLogIndex = eventInfo.logIndex;
 
         emit AnswerUpdated(currentAnswer, roundID, updatedAt);
-    }
-
-    modifier _onlySourceOracleEvents(EVMEventInfo memory eventInfo) {
-        require(eventInfo.blockchainID == sourceBlockchainID, "Invalid blockchain ID");
-        require(eventInfo.log.loggerAddress == sourceOracleAggregator, "Invalid logger address");
-        _;
-    }
-
-    modifier _onlyValidAnswerUpdatedEvents(EVMEventInfo memory eventInfo) {
-        require(eventInfo.log.topics.length == 3, "Invalid log topics");
-        require(eventInfo.log.data.length == 32, "Invalid log data");
-        require(eventInfo.log.topics[0] == ANSWER_UPDATED_EVENT_SIGNATURE, "Invalid event signature");
-        _;
-    }
-
-    modifier _onlyMoreRecentEvents(EVMEventInfo memory eventInfo) {
-        require(
-            eventInfo.blockNumber >= latestSourceBlockNumber
-                && (eventInfo.blockNumber > latestSourceBlockNumber || eventInfo.txIndex > latestSourceTxIndex)
-                && (
-                    eventInfo.blockNumber > latestSourceBlockNumber || eventInfo.txIndex > latestSourceTxIndex
-                        || eventInfo.logIndex > latestSourceLogIndex
-                ),
-            "Stale event"
-        );
-        _;
     }
 }

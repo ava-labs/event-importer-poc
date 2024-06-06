@@ -1,3 +1,6 @@
+// Copyright (C) 2024, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package utils
 
 import (
@@ -25,7 +28,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func GetSignedBlockHashMessage(ctx context.Context, subnet interfaces.SubnetTestInfo, importingSubnetID ids.ID, blockHash common.Hash) []byte {
+func GetSignedBlockHashMessage(
+	ctx context.Context,
+	subnet interfaces.SubnetTestInfo,
+	importingSubnetID ids.ID,
+	blockHash common.Hash,
+) []byte {
 	warpClient, err := warpBackend.NewClient(subnet.NodeURIs[0], subnet.BlockchainID.String())
 	Expect(err).Should(BeNil())
 
@@ -36,7 +44,11 @@ func GetSignedBlockHashMessage(ctx context.Context, subnet interfaces.SubnetTest
 		importingSubnetID.String(),
 	)
 	Expect(err).Should(BeNil())
-	log.Info("Got signed block hash message", "blockHash", blockHash.String(), "signedWarpMessageBytes", hex.EncodeToString(signedWarpMessageBytes))
+	log.Info(
+		"Got signed block hash message",
+		"blockHash", blockHash.String(),
+		"signedWarpMessageBytes", hex.EncodeToString(signedWarpMessageBytes),
+	)
 
 	return signedWarpMessageBytes
 }
@@ -48,14 +60,14 @@ func DeployMockPriceFeedAggregator(
 ) (common.Address, *mockpricefeedaggregator.MockPriceFeedAggregator) {
 	opts, err := bind.NewKeyedTransactorWithChainID(senderKey, subnet.EVMChainID)
 	Expect(err).Should(BeNil())
-	mockPriceFeedAggregatorAddress, deployMockPriceFeedTx, mockPriceFeedAggregator, err := mockpricefeedaggregator.DeployMockPriceFeedAggregator(
+	address, tx, aggregator, err := mockpricefeedaggregator.DeployMockPriceFeedAggregator(
 		opts,
 		subnet.RPCClient,
 	)
 	Expect(err).Should(BeNil())
-	teleporterUtils.WaitForTransactionSuccess(ctx, subnet, deployMockPriceFeedTx.Hash())
-	log.Info("Created Mock Price Feed contract", "address", mockPriceFeedAggregatorAddress.Hex())
-	return mockPriceFeedAggregatorAddress, mockPriceFeedAggregator
+	teleporterUtils.WaitForTransactionSuccess(ctx, subnet, tx.Hash())
+	log.Info("Created Mock Price Feed contract", "address", address.Hex())
+	return address, aggregator
 }
 
 func DeployPriceFeedImporter(
@@ -67,11 +79,16 @@ func DeployPriceFeedImporter(
 ) (common.Address, *pricefeedimporter.PriceFeedImporter) {
 	opts, err := bind.NewKeyedTransactorWithChainID(senderKey, subnet.EVMChainID)
 	Expect(err).Should(BeNil())
-	priceFeedImporterAddress, deployPriceFeedImporterTx, priceFeedImporter, err := pricefeedimporter.DeployPriceFeedImporter(opts, subnet.RPCClient, aggregatorBlockchainID, aggregatorAddress)
+	address, tx, importer, err := pricefeedimporter.DeployPriceFeedImporter(
+		opts,
+		subnet.RPCClient,
+		aggregatorBlockchainID,
+		aggregatorAddress,
+	)
 	Expect(err).Should(BeNil())
-	teleporterUtils.WaitForTransactionSuccess(ctx, subnet, deployPriceFeedImporterTx.Hash())
-	log.Info("Created Price Feed Importer contract", "address", priceFeedImporterAddress.Hex())
-	return priceFeedImporterAddress, priceFeedImporter
+	teleporterUtils.WaitForTransactionSuccess(ctx, subnet, tx.Hash())
+	log.Info("Created Price Feed Importer contract", "address", address.Hex())
+	return address, importer
 }
 
 func UpdateMockPriceFeedAnswer(
@@ -105,7 +122,13 @@ func ConstructImportEventTransaction(
 ) *types.Transaction {
 	importerABI, err := ieventimporter.IEventImporterMetaData.GetAbi()
 	Expect(err).Should(BeNil())
-	importEventData, err := importerABI.Pack("importEvent", encodedBlockHeader, big.NewInt(int64(txIndex)), encodedReceiptProof, big.NewInt(int64(logIndex)))
+	importEventData, err := importerABI.Pack(
+		"importEvent",
+		encodedBlockHeader,
+		big.NewInt(int64(txIndex)),
+		encodedReceiptProof,
+		big.NewInt(int64(logIndex)),
+	)
 	Expect(err).Should(BeNil())
 	gasFeeCap, gasTipCap, nonce := teleporterUtils.CalculateTxParams(ctx, subnet, senderAddress)
 	unsignedImportEventTx := predicateutils.NewPredicateTx(

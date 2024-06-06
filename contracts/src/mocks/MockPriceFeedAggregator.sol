@@ -1,13 +1,21 @@
+// (c) 2024, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 // SPDX-License-Identifier: Ecosystem
 
 pragma solidity 0.8.18;
+
+/**
+ * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
+ * DO NOT USE THIS CODE IN PRODUCTION.
+ */
 
 /**
  * @notice Mock contract for mimicking a price feed aggregator.
  * Used in tests to simulate importing price feed updates into other blockchains.
  */
 contract MockPriceFeedAggregator {
-    address immutable deployer;
+    address public immutable deployer;
 
     // Latest answer information.
     int256 public currentAnswer;
@@ -20,12 +28,12 @@ contract MockPriceFeedAggregator {
         deployer = msg.sender;
     }
 
-    function updateAnswer(int256 _currentAnswer, uint80 _roundID, uint256 _updatedAt) external {
+    function updateAnswer(int256 currentAnswer_, uint80 roundID_, uint256 updatedAt_) external {
         require(msg.sender == deployer, "Only deployer can update answer");
-        currentAnswer = _currentAnswer;
-        roundID = _roundID;
-        updatedAt = _updatedAt;
-        emit AnswerUpdated(_currentAnswer, _roundID, _updatedAt);
+        currentAnswer = currentAnswer_;
+        roundID = roundID_;
+        updatedAt = updatedAt_;
+        emit AnswerUpdated(currentAnswer_, roundID_, updatedAt_);
     }
 
     function latestRoundData() public view virtual returns (uint80, int256, uint256, uint256, uint80) {

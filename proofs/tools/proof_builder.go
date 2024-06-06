@@ -1,3 +1,6 @@
+// Copyright (C) 2024, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package main
 
 import (
@@ -19,7 +22,9 @@ import (
 /**
  * Utility tool for building a Merkle proof for a transaction receipt.
  * Required parameters are the RPC URL, block hash, and transaction index.
- * Example usage: go run proofs/tools/proof_builder.go --rpc-url https://api.avax.network/ext/bc/C/rpc --blockhash 0x27bfa26de1022c4d9cbbc67d6819037ce8a4de99832f00105d7be9d2b4d25369 --txindex 1
+ * Example usage:
+ * go run proofs/tools/proof_builder.go --rpc-url https://api.avax.network/ext/bc/C/rpc \
+ * --blockhash 0x27bfa26de1022c4d9cbbc67d6819037ce8a4de99832f00105d7be9d2b4d25369 --txindex 1
  */
 func main() {
 	// Set log output to stdout

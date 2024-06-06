@@ -1,11 +1,17 @@
+// (c) 2024, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 // SPDX-License-Identifier: Ecosystem
 
 pragma solidity 0.8.18;
 
-import {EVMLog, EVMReceipt, EVMBlockHeader} from "./IEventImporter.sol";
-import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
-import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
+import {EVMLog, EVMReceipt} from "./IEventImporter.sol";
 import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RlpReader.sol";
+
+/**
+ * THIS IS AN EXAMPLE LIBRARY THAT USES UN-AUDITED CODE.
+ * DO NOT USE THIS CODE IN PRODUCTION.
+ */
 
 library RLPUtils {
     using RLPReader for bytes;
@@ -19,6 +25,7 @@ library RLPUtils {
         uint8 txType;
         if (!encodedReceipt.isList()) {
             uint256 memptr = encodedReceipt.memPtr;
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 txType := byte(0, mload(memptr))
             }

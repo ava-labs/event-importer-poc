@@ -1,12 +1,20 @@
+// (c) 2024, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 // SPDX-License-Identifier: Ecosystem
 
 pragma solidity 0.8.18;
 
-import {EVMEventInfo, EVMLog, EVMReceipt, EVMBlockHeader, IEventImporter} from "./IEventImporter.sol";
+import {EVMEventInfo, EVMReceipt, IEventImporter} from "./IEventImporter.sol";
 import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
 import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
 import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RlpReader.sol";
 import {RLPUtils} from "./RLPUtils.sol";
+
+/**
+ * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
+ * DO NOT USE THIS CODE IN PRODUCTION.
+ */
 
 /**
  * @notice Abstract contract for importing events from another blockchain.
