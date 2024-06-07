@@ -1,6 +1,6 @@
 module github.com/ava-labs/receipt-proofs-poc
 
-go 1.21.10
+go 1.21.11
 
 require (
 	github.com/ava-labs/avalanchego v1.11.1

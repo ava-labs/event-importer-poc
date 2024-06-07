@@ -32,7 +32,7 @@ contract MyEventImporter is EventImporter {
         override
     {
         require(eventInfo.blockchainID == sourceBlockchainID);
-        require(eventInfo.log.loggerAddress = emitterContract)
+        require(eventInfo.log.loggerAddress == emitterContract)
 
         // Custom logic here
         // ....
