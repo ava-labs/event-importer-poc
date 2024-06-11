@@ -72,6 +72,14 @@ abstract contract EventImporter is IEventImporter {
                 log: receipt.logs[logIndex]
             })
         );
+
+        emit EventImported(
+            warpBlockHash.sourceChainID,
+            warpBlockHash.blockHash,
+            receipt.logs[logIndex].loggerAddress,
+            txIndex,
+            logIndex
+        );
     }
 
     function _onEventImport(EVMEventInfo memory eventInfo) internal virtual;

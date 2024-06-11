@@ -11,30 +11,6 @@ pragma solidity 0.8.18;
  */
 
 /*
- * @notice Struct representing an EVM block header.
- * Note: The block header format may vary between chains with different VM implementations (i.e. subnet-evm vs coreth).
-*/
-struct EVMBlockHeader {
-    bytes32 parentHash;
-    bytes32 sha3Uncles;
-    address miner;
-    bytes32 stateRoot;
-    bytes32 transactionsRoot;
-    bytes32 receiptsRoot;
-    bytes logsBloom;
-    uint256 difficulty;
-    uint256 number;
-    uint256 gasLimit;
-    uint256 gasUsed;
-    uint256 timestamp;
-    bytes extraData;
-    bytes32 mixHash;
-    uint256 nonce;
-    uint256 baseFeePerGas;
-    uint256 blockGasCost;
-}
-
-/*
  * @notice Struct representing an EVM event log.
  */
 struct EVMLog {
@@ -66,6 +42,17 @@ struct EVMEventInfo {
 }
 
 interface IEventImporter {
+    /*
+     * @notice Event emitted when an event is imported from another blockchain.
+     */
+    event EventImported(
+        bytes32 indexed sourceBlockchainID,
+        bytes32 indexed sourceBlockHash,
+        address indexed loggerAddress,
+        uint256 txIndex,
+        uint256 logIndex
+    );
+
     /*
      * @notice Imports an event log from another blockchain.
      * 1. Imports a block hash from another blockchain via Warp.

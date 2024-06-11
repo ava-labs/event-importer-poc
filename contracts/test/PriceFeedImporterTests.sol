@@ -18,6 +18,13 @@ contract PriceFeedImporterTest is Test {
     PriceFeedImporter public priceFeedImporter;
 
     event AnswerUpdated(int256 currentAnswer, uint80 roundID, uint256 updatedAt);
+    event EventImported(
+        bytes32 indexed sourceBlockchainID,
+        bytes32 indexed sourceBlockHash,
+        address indexed loggerAddress,
+        uint256 txIndex,
+        uint256 logIndex
+    );
 
     function setUp() public virtual {
         priceFeedImporter = new PriceFeedImporter(DEFAULT_BLOCKCHAIN_ID, SOURCE_ORACLE_AGGREGATOR);
@@ -51,6 +58,8 @@ contract PriceFeedImporterTest is Test {
         // Import the event.
         vm.expectEmit(true, true, true, true);
         emit AnswerUpdated(6_601_600_000_000, 179_712, 1_715_809_933);
+        vm.expectEmit(true, true, true, true);
+        emit EventImported(DEFAULT_BLOCKCHAIN_ID, blockHash, 0x154baB1FC1D87fF641EeD0E9Bc0f8a50D880D2B6, 8, 2);
         priceFeedImporter.importEvent(encodedBlockHeader, 8, proof, 2);
 
         // Verify the latest round data.
