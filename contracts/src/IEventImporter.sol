@@ -61,6 +61,11 @@ interface IEventImporter {
      * the block header's receipt root.
      * 4. Decodes and returns the log at the given log index from the receipt.
      */
-    function importEvent(bytes calldata blockHeader, uint256 txIndex, bytes[] calldata receiptProof, uint256 logIndex)
-        external;
+    function importEvent(
+        bytes32 sourceBlockchainID,
+        bytes calldata blockHeader,
+        uint256 txIndex,
+        bytes[] calldata receiptProof,
+        uint256 logIndex
+    ) external;
 }

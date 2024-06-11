@@ -124,6 +124,7 @@ func ConstructImportEventTransaction(
 	Expect(err).Should(BeNil())
 	importEventData, err := importerABI.Pack(
 		"importEvent",
+		common.Hash{},
 		encodedBlockHeader,
 		big.NewInt(int64(txIndex)),
 		encodedReceiptProof,

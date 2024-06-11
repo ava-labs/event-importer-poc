@@ -37,10 +37,16 @@ abstract contract EventImporter is IEventImporter {
      * 2. Verifies that the provided blockHeader matches the authenticated block hash.
      * 3. Gets the receipt at the given transaction index by verifying the merkle proof against the block header's receipt root.
      * 4. Decodes and returns the log at the given log index from the receipt.
+     * Note: The first argument (sourceBlockchainID) is not used in this example because it is fetched from
+     * WarpBlockHash provided by the Warp precompile.
      */
-    function importEvent(bytes calldata blockHeader, uint256 txIndex, bytes[] calldata receiptProof, uint256 logIndex)
-        external
-    {
+    function importEvent(
+        bytes32,
+        bytes calldata blockHeader,
+        uint256 txIndex,
+        bytes[] calldata receiptProof,
+        uint256 logIndex
+    ) external {
         // Get the verified block has via the Warp precompile.
         (WarpBlockHash memory warpBlockHash, bool valid) = warpMessenger.getVerifiedWarpBlockHash(0);
         require(valid, "Invalid WarpBlockHash");
