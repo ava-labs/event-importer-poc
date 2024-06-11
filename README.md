@@ -70,13 +70,28 @@ The E2E test flow:
 5. Imports the price feed update event into the Subnet by constructing a Warp signature of the block hash that it occured in on the C-Chain, constructing a Merkle proof for the transaction receipt the event was contained in, and broadcasting this information to the Subnet by calling the `importEvent` interface function of the `PriceFeedImporter` contract.
 
 ## Open Questions and Considerations
-The following is a non-exhaustive list of that should be answered and considerations to be made to move this idea from a proof-of-concept to a production-ready framework.
-- Can/Should block hash authenticated via Warp messages be stored such that they can be used to prove arbitrarily many events going forward without having to re-verify a Warp aggregate signature?
-- Is the Merkle proof verification or RLP decoding prohibitively expensive gas-wise? Can they be optimized if so? How does gas usage scale with the number of receipts in the block including the event to be imported?
-- Is the delay from the time an event is emitted on a source chain to when it is imported on another chain a non-starter for certain applications? 
-    - For instance, when importing a price feed stream, it is known what the next value to be imported will be before it is actually imported.
-    - If yes, what is the acceptable delay, or how can the risk be mitigated? Note that some delay already exists in the single chain case from when the transaction hits the mempool of the source chain to when it gets included in a block.
-- How can relayers be incentivized to deliver new events that meet certain criteria?
-- What is the preferred mechanism for delivering events to be imported on other chains?
-    - Could take the form of a relayer application that listens for certain events and sends them along with the required proof to be imported to pre-configured chains and contracts.
-    - Could take the form of a public "get Warp block signature" API, that allows UIs to construct transactions importing events from other chains. In this model, users would import their own events from their wallet. The API service could potentially pre-emptively construct the aggregate signature for each block on the set of supported chains such that it can serve them on request without needing to query validators for their individual BLS signatures.
+### Should block hashes authenticated via Warp messages be stored such that they can be used to prove arbitrarily many events going forward without having to re-verify a Warp aggregate signature?
+
+The `IEventImporter` interface definition intentionally includes an explicit `sourceBlockchain` parameter such that implementations do not necessarily need to use the Warp precompile to directly authentication block hashes. Instead, previously authenticated block hashes can be checked against an external "block hash registry"-like contract. This would enable multiple events to be imported from the same block with only requiring the block hash be authenticated once.
+
+### Is the Merkle proof verification or RLP decoding prohibitively expensive gas-wise? Can they be optimized if so? How does gas usage scale with the number of receipts in the block including the event to be imported?
+
+Currently, roughly ~450,000 gas is used in transactions in the E2E. These transaction include:
+- Verifying a Warp signature with 4 signers
+- Verifying a Merkle proof of inclusion of a receipt in a block that contains a single transaction
+
+Additional signers cost [500 gas each](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/warp/contract.go#L34). Further analysis is needed to determine how gas usage increases as the number of transactions in blocks and number of logs in the relevant transaction grows.
+
+### Is the delay from the time an event is emitted on a source chain to when it is imported on another chain a non-starter for certain applications? 
+
+For potential applications such as importing data feeds from other chains, it is known what the next value to be imported should be before the import actually occurs. This could present an MEV-like opportunity for applications that depend on the data feed values. Note that some level of delay already exists in the single chain case from when a transaction hits the mempool of the source chain to when it gets included in a block on that chain. If this increased delay is a concern, what amount of delay is acceptable, and how can that risk be mitigated?
+
+### How can relayers be incentivized to deliver new events that meet certain criteria?
+
+Contracts importing events could theoretically define rewards able to be claimed by anyone that delivers events that meet specific criteria. 
+
+### What are the preferred mechanisms for delivering events to be imported on other chains?
+
+Possible options include:
+- A relayer application that listens for specific events and sends them along with the required proof to be imported to pre-configured chains and contracts.
+- A public "get Warp block signature" API that allows UIs to construct transactions that import events. In this model, users would import their own events from their wallet. One implementation of this [API already exists with subnet-evm](https://github.com/ava-labs/subnet-evm/blob/master/warp/service.go#L80), but is not publicly available since it is a potential DOS vector for nodes that have it enabled.
