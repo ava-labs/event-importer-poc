@@ -16,6 +16,11 @@ import {EVMEventInfo, EventImporter} from "./EventImporter.sol";
  * @notice An example EventImporter implementation that imports the latest price feed data from another blockchain.
  */
 contract PriceFeedImporter is EventImporter {
+    struct Round {
+        int256 answer;
+        uint256 updatedAt;
+    }
+
     bytes32 public constant ANSWER_UPDATED_EVENT_SIGNATURE = keccak256("AnswerUpdated(int256,uint256,uint256)");
 
     // Blockchain ID of the oracle chain.
@@ -25,9 +30,12 @@ contract PriceFeedImporter is EventImporter {
     address public immutable sourceOracleAggregator;
 
     // Latest answer information.
-    int256 public currentAnswer;
-    uint80 public roundID;
-    uint256 public updatedAt;
+    // int256 public currentAnswer;
+    // uint80 public roundID;
+    // uint256 public updatedAt;
+
+    uint80 public latestRoundID;
+    mapping(uint80 => Round) rounds;
 
     // The block and transaction on the source blockchain where the latest answer was updated.
     uint256 public latestSourceBlockNumber;
@@ -68,12 +76,33 @@ contract PriceFeedImporter is EventImporter {
         sourceOracleAggregator = sourceOracleAggregator_;
     }
 
+    function getRoundData(uint80 _roundID) public view returns (uint80, int256, uint256, uint256, uint80) {
+        Round memory round = rounds[_roundID];
+        require(round.updatedAt != 0, "No data");
+        return (_roundID, round.answer, round.updatedAt, round.updatedAt, _roundID);
+    }
+
+    function latestAnswer() external view returns (int256) {
+        (, int256 answer,,,) = latestRoundData();
+        return answer;
+    }
+
+    function latestRound() external view returns (uint256) {
+        (uint80 roundID, ,,,) = latestRoundData();
+        return roundID;
+    }
+
+    function getAnswer(uint256 _roundID) external view returns (int256) {
+        if (_roundID > 0xFFFFFFFF) { return 0; }
+        (, int256 answer,,,) = getRoundData(uint80(_roundID));
+        return answer;
+    }
+
     /**
      * @notice Returns the latest round data if available.
      */
-    function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80) {
-        require(updatedAt != 0, "No data");
-        return (roundID, currentAnswer, updatedAt, updatedAt, roundID);
+    function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80) {
+        return getRoundData(latestRoundID);
     }
 
     function _onEventImport(EVMEventInfo memory eventInfo)
@@ -84,15 +113,25 @@ contract PriceFeedImporter is EventImporter {
         _onlyMoreRecentEvents(eventInfo)
     {
         // Update the latest answer.
-        currentAnswer = int256(uint256(eventInfo.log.topics[1]));
-        roundID = uint80(uint256(eventInfo.log.topics[2]));
-        updatedAt = uint256(bytes32(eventInfo.log.data));
+        uint80 roundID = uint80(uint256(eventInfo.log.topics[2]));
+        if (roundID <= latestRoundID) {
+            revert("roundID should be monotonically increasing");
+        }
+
+        int256 answer = int256(uint256(eventInfo.log.topics[1]));
+        uint256 updatedAt = uint256(bytes32(eventInfo.log.data));
+        Round memory round = Round({
+            answer: answer,
+            updatedAt: updatedAt
+        });
+        rounds[roundID] = round;
+        latestRoundID = roundID;
 
         // Update the latest source block information.
         latestSourceBlockNumber = eventInfo.blockNumber;
         latestSourceTxIndex = eventInfo.txIndex;
         latestSourceLogIndex = eventInfo.logIndex;
 
-        emit AnswerUpdated(currentAnswer, roundID, updatedAt);
+        emit AnswerUpdated(answer, roundID, updatedAt);
     }
 }
