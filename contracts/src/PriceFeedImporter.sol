@@ -29,11 +29,6 @@ contract PriceFeedImporter is EventImporter {
     // Address of the Aggregator contract on the source blockchain.
     address public immutable sourceOracleAggregator;
 
-    // Latest answer information.
-    // int256 public currentAnswer;
-    // uint80 public roundID;
-    // uint256 public updatedAt;
-
     uint80 public latestRoundID;
     mapping(uint80 => Round) rounds;
 
