@@ -30,7 +30,7 @@ contract PriceFeedImporter is EventImporter {
     address public immutable sourceOracleAggregator;
 
     uint80 public latestRoundID;
-    mapping(uint80 => Round) rounds;
+    mapping(uint80 => Round) public rounds;
 
     // The block and transaction on the source blockchain where the latest answer was updated.
     uint256 public latestSourceBlockNumber;
@@ -71,26 +71,28 @@ contract PriceFeedImporter is EventImporter {
         sourceOracleAggregator = sourceOracleAggregator_;
     }
 
-    function getRoundData(uint80 _roundID) public view returns (uint80, int256, uint256, uint256, uint80) {
-        Round memory round = rounds[_roundID];
-        require(round.updatedAt != 0, "No data");
-        return (_roundID, round.answer, round.updatedAt, round.updatedAt, _roundID);
-    }
-
     function latestAnswer() external view returns (int256) {
         (, int256 answer,,,) = latestRoundData();
         return answer;
     }
 
     function latestRound() external view returns (uint256) {
-        (uint80 roundID, ,,,) = latestRoundData();
+        (uint80 roundID,,,,) = latestRoundData();
         return roundID;
     }
 
+    // solhint-disable-next-line private-vars-leading-underscore
     function getAnswer(uint256 _roundID) external view returns (int256) {
-        if (_roundID > 0xFFFFFFFF) { return 0; }
+        if (_roundID > 0xFFFFFFFF) return 0;
         (, int256 answer,,,) = getRoundData(uint80(_roundID));
         return answer;
+    }
+
+    // solhint-disable-next-line private-vars-leading-underscore
+    function getRoundData(uint80 _roundID) public view returns (uint80, int256, uint256, uint256, uint80) {
+        Round memory round = rounds[_roundID];
+        require(round.updatedAt != 0, "No data");
+        return (_roundID, round.answer, round.updatedAt, round.updatedAt, _roundID);
     }
 
     /**
@@ -115,10 +117,7 @@ contract PriceFeedImporter is EventImporter {
 
         int256 answer = int256(uint256(eventInfo.log.topics[1]));
         uint256 updatedAt = uint256(bytes32(eventInfo.log.data));
-        Round memory round = Round({
-            answer: answer,
-            updatedAt: updatedAt
-        });
+        Round memory round = Round({answer: answer, updatedAt: updatedAt});
         rounds[roundID] = round;
         latestRoundID = roundID;
 
