@@ -58,7 +58,7 @@ library RLPUtils {
         RLPReader.RLPItem[] memory log = encodedLog.toList();
         // Three items in every receipt are:
         // 1. Address of the logger
-        // 2. Log topics, of which there is always at least one (the event signature)
+        // 2. Log topics
         // 3. Log data (arbitrary bytes)
         require(log.length == 3, "Invalid number of RLP elements in log");
         EVMLog memory evmLog;

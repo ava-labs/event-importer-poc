@@ -11,6 +11,8 @@ import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatrici
 import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RLPReader.sol";
 import {RLPUtils} from "./RLPUtils.sol";
 
+import "forge-std/Test.sol";
+
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
  * DO NOT USE THIS CODE IN PRODUCTION.
@@ -21,7 +23,7 @@ import {RLPUtils} from "./RLPUtils.sol";
  * Uses the Warp precompile to authenticate the block hash of the block including the events to be imported.
  * Inheriting contracts must implement the _onEventImport function to handle event imports.
  */
-abstract contract EventImporter is IEventImporter {
+abstract contract EventImporter is IEventImporter, Test {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
@@ -66,6 +68,13 @@ abstract contract EventImporter is IEventImporter {
         require(results.length == 1, "Invalid number of results in receipt proof");
         require(results[0].value.length > 0, "Invalid receipt proof");
 
+        {
+            uint256 g = gasleft();
+            RLPUtils.decodeReceipt(results[0].value.toRlpItem());
+            uint256 a = gasleft();
+            emit log_uint(g - a);
+        }
+
         EVMReceipt memory receipt = RLPUtils.decodeReceipt(results[0].value.toRlpItem());
         require(logIndex < receipt.logs.length, "Invalid log index");
 
@@ -86,6 +95,7 @@ abstract contract EventImporter is IEventImporter {
             txIndex,
             logIndex
         );
+
     }
 
     function _onEventImport(EVMEventInfo memory eventInfo) internal virtual;
