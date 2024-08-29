@@ -56,10 +56,10 @@ contract PriceFeedImporterTest is Test {
         priceFeedImporter.latestRoundData();
 
         // Import the event.
-        // vm.expectEmit(true, true, true, true);
-        // emit AnswerUpdated(6_601_600_000_000, 179_712, 1_715_809_933);
-        // vm.expectEmit(true, true, true, true);
-        // emit EventImported(DEFAULT_BLOCKCHAIN_ID, blockHash, 0x154baB1FC1D87fF641EeD0E9Bc0f8a50D880D2B6, 8, 2);
+        vm.expectEmit(true, true, true, true);
+        emit AnswerUpdated(6_601_600_000_000, 179_712, 1_715_809_933);
+        vm.expectEmit(true, true, true, true);
+        emit EventImported(DEFAULT_BLOCKCHAIN_ID, blockHash, 0x154baB1FC1D87fF641EeD0E9Bc0f8a50D880D2B6, 8, 2);
         priceFeedImporter.importEvent(bytes32(0), encodedBlockHeader, 8, proof, 2);
 
         // Verify the latest round data.
