@@ -5,7 +5,7 @@
 
 pragma solidity 0.8.18;
 
-import {EVMEventInfo, EVMReceipt, IEventImporter} from "./IEventImporter.sol";
+import {EVMLog, EVMEventInfo, EVMReceipt, IEventImporter} from "./IEventImporter.sol";
 import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
 import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
 import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RLPReader.sol";
@@ -68,15 +68,7 @@ abstract contract EventImporter is IEventImporter, Test {
         require(results.length == 1, "Invalid number of results in receipt proof");
         require(results[0].value.length > 0, "Invalid receipt proof");
 
-        {
-            uint256 g = gasleft();
-            RLPUtils.decodeReceipt(results[0].value.toRlpItem());
-            uint256 a = gasleft();
-            emit log_uint(g - a);
-        }
-
-        EVMReceipt memory receipt = RLPUtils.decodeReceipt(results[0].value.toRlpItem());
-        require(logIndex < receipt.logs.length, "Invalid log index");
+        EVMLog memory log = RLPUtils.decodeLogFast(results[0].value.toRlpItem(), logIndex);
 
         _onEventImport(
             EVMEventInfo({
@@ -84,14 +76,14 @@ abstract contract EventImporter is IEventImporter, Test {
                 blockNumber: blockNumber,
                 txIndex: txIndex,
                 logIndex: logIndex,
-                log: receipt.logs[logIndex]
+                log: log
             })
         );
 
         emit EventImported(
             warpBlockHash.sourceChainID,
             warpBlockHash.blockHash,
-            receipt.logs[logIndex].loggerAddress,
+            log.loggerAddress,
             txIndex,
             logIndex
         );

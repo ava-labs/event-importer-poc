@@ -25,7 +25,7 @@ struct EVMLog {
 struct EVMReceipt {
     uint8 txType;
     bytes postStateOrStatus;
-    uint64 cululativeGasUsed;
+    uint64 cumulativeGasUsed;
     bytes bloom;
     EVMLog[] logs;
 }

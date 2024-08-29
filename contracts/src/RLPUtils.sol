@@ -43,7 +43,7 @@ library RLPUtils {
         EVMReceipt memory result;
         result.txType = txType;
         result.postStateOrStatus = receiptItems[0].toBytes();
-        result.cululativeGasUsed = uint64(receiptItems[1].toUint());
+        result.cumulativeGasUsed = uint64(receiptItems[1].toUint());
         result.bloom = receiptItems[2].toBytes();
         RLPReader.RLPItem[] memory logs = receiptItems[3].toList();
         result.logs = new EVMLog[](logs.length);
@@ -70,6 +70,15 @@ library RLPUtils {
         }
         evmLog.data = log[2].toBytes();
         return evmLog;
+    }
+
+    function decodeLogFast(RLPReader.RLPItem memory encodedReceipt, uint256 logIndex) internal pure returns (EVMLog memory) {
+        RLPReader.RLPItem[] memory receiptItems = encodedReceipt.toList();
+        RLPReader.RLPItem[] memory logs = receiptItems[3].toList();
+        if (logIndex >= logs.length) {
+            revert("Invalid log index");
+        }
+        return decodeLog(logs[logIndex]);
     }
 
     function decodeBlockNumberAndReceiptsRoot(bytes memory encodedBlockHeader)
