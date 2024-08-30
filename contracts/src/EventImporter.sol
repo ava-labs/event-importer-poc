@@ -27,6 +27,11 @@ abstract contract EventImporter is IEventImporter, Test {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
+    struct TxLogIndex {
+        uint256 txIndex;
+        uint256 logIndex;
+    }
+
     IWarpMessenger public warpMessenger;
 
     constructor() {
@@ -49,6 +54,22 @@ abstract contract EventImporter is IEventImporter, Test {
         bytes[] calldata receiptProof,
         uint256 logIndex
     ) external {
+        // TODO it is more expensive to do that because of the memory allocation
+        TxLogIndex[] memory txLogIndexes = new TxLogIndex[](1);
+        txLogIndexes[0] = TxLogIndex({
+            txIndex: txIndex,
+            logIndex: logIndex
+        });
+        importEvents(bytes32(0), blockHeader, receiptProof, txLogIndexes);
+    }
+
+    // @notice import multiple events from the same receipt
+    function importEvents(
+        bytes32,
+        bytes calldata blockHeader,
+        bytes[] calldata receiptProof,
+        TxLogIndex[] memory txLogIndexes
+    ) public {
         // Get the verified block has via the Warp precompile.
         (WarpBlockHash memory warpBlockHash, bool valid) = warpMessenger.getVerifiedWarpBlockHash(0);
         require(valid, "Invalid WarpBlockHash");
@@ -60,34 +81,39 @@ abstract contract EventImporter is IEventImporter, Test {
         (uint256 blockNumber, bytes32 receiptsRoot) = RLPUtils.decodeBlockNumberAndReceiptsRoot(blockHeader);
 
         // Construct the key of the trie receipt proof.
-        bytes[] memory receiptKeys = new bytes[](1);
-        receiptKeys[0] = RLPUtils.encodeUint256(txIndex);
+        bytes[] memory receiptKeys = new bytes[](txLogIndexes.length);
+        for (uint256 i; i < txLogIndexes.length; i++) {
+            receiptKeys[i] = RLPUtils.encodeUint256(txLogIndexes[i].txIndex);
+        }
 
         // Verify the trie proof against the receipts root.
         StorageValue[] memory results = MerklePatricia.VerifyEthereumProof(receiptsRoot, receiptProof, receiptKeys);
-        require(results.length == 1, "Invalid number of results in receipt proof");
-        require(results[0].value.length > 0, "Invalid receipt proof");
+        require(results.length == receiptKeys.length, "Invalid number of results in receipt proof");
+        for (uint256 i; i < results.length; i++) {
+            require(results[i].value.length > 0, "Invalid receipt proof");
 
-        EVMLog memory log = RLPUtils.decodeLogFast(results[0].value.toRlpItem(), logIndex);
+            TxLogIndex memory txLogIndex = txLogIndexes[i];
 
-        _onEventImport(
-            EVMEventInfo({
-                blockchainID: warpBlockHash.sourceChainID,
-                blockNumber: blockNumber,
-                txIndex: txIndex,
-                logIndex: logIndex,
-                log: log
-            })
-        );
+            EVMLog memory log = RLPUtils.decodeLogFast(results[i].value.toRlpItem(), txLogIndex.logIndex);
 
-        emit EventImported(
-            warpBlockHash.sourceChainID,
-            warpBlockHash.blockHash,
-            log.loggerAddress,
-            txIndex,
-            logIndex
-        );
+            _onEventImport(
+                EVMEventInfo({
+                    blockchainID: warpBlockHash.sourceChainID,
+                    blockNumber: blockNumber,
+                    txIndex: txLogIndex.txIndex,
+                    logIndex: txLogIndex.logIndex,
+                    log: log
+                })
+            );
 
+            emit EventImported(
+                warpBlockHash.sourceChainID,
+                warpBlockHash.blockHash,
+                log.loggerAddress,
+                txLogIndex.txIndex,
+                txLogIndex.logIndex
+            );
+        }
     }
 
     function _onEventImport(EVMEventInfo memory eventInfo) internal virtual;
