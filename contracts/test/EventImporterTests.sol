@@ -15,9 +15,9 @@ contract EventImporterTest is Test {
         bytes32(hex"55e1fcfdde01f9f6d4c16fa2ed89ce65a8669120a86f321eef121891cab61241");
     address public constant SOURCE_ORACLE_AGGREGATOR = 0x154baB1FC1D87fF641EeD0E9Bc0f8a50D880D2B6;
 
-    uint8 public constant decimals = 18;
-    string description = "WarpETHUSDAggregator";
-    uint256 public constant version = 1;
+    uint8 public constant DECIMALS = 18;
+    string public description = "WarpETHUSDAggregator";
+    uint256 public constant VERSION = 1;
 
     PriceFeedImporter public priceFeedImporter;
 
@@ -31,7 +31,7 @@ contract EventImporterTest is Test {
     );
 
     function setUp() public virtual {
-        priceFeedImporter = new PriceFeedImporter(DEFAULT_BLOCKCHAIN_ID, SOURCE_ORACLE_AGGREGATOR, decimals, description, version);
+        priceFeedImporter = new PriceFeedImporter(DEFAULT_BLOCKCHAIN_ID, SOURCE_ORACLE_AGGREGATOR, DECIMALS, description, VERSION);
     }
 
     function testImportEvent() public {
