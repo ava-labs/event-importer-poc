@@ -55,6 +55,7 @@ abstract contract EventImporter is IEventImporter, Test {
         uint256 logIndex
     ) external {
         // TODO it is more expensive to do that because of the memory allocation
+        // but Solidity function inlining is not easy to predict.
         TxLogIndex[] memory txLogIndexes = new TxLogIndex[](1);
         txLogIndexes[0] = TxLogIndex({
             txIndex: txIndex,
