@@ -15,7 +15,7 @@ import {EVMEventInfo, EventImporter} from "./EventImporter.sol";
 /**
  * @notice An example EventImporter implementation that imports the latest price feed data from another blockchain.
  */
-contract PriceFeedImporter is EventImporter {
+contract PriceFeedImporter is EventImporter, AggregatorV3Interface {
     struct Round {
         int256 answer;
         uint256 updatedAt;
@@ -23,12 +23,18 @@ contract PriceFeedImporter is EventImporter {
 
     bytes32 public constant ANSWER_UPDATED_EVENT_SIGNATURE = keccak256("AnswerUpdated(int256,uint256,uint256)");
 
+    // Price feed information
+    uint8 public immutable decimals;
+    string public description;
+    uint256 public immutable version;
+
     // Blockchain ID of the oracle chain.
     bytes32 public immutable sourceBlockchainID;
 
     // Address of the Aggregator contract on the source blockchain.
     address public immutable sourceOracleAggregator;
 
+    // Rounds
     uint80 public latestRoundID;
     mapping(uint80 => Round) public rounds;
 
@@ -66,9 +72,12 @@ contract PriceFeedImporter is EventImporter {
         _;
     }
 
-    constructor(bytes32 sourceBlockchainID_, address sourceOracleAggregator_) {
+    constructor(bytes32 sourceBlockchainID_, address sourceOracleAggregator_, uint8 decimals_, string memory description_, uint256 version_) {
         sourceBlockchainID = sourceBlockchainID_;
         sourceOracleAggregator = sourceOracleAggregator_;
+        decimals = decimals_;
+        description = description_;
+        version = version_;
     }
 
     function latestAnswer() external view returns (int256) {
@@ -111,7 +120,7 @@ contract PriceFeedImporter is EventImporter {
     {
         // Update the latest answer.
         uint80 roundID = uint80(uint256(eventInfo.log.topics[2]));
-        if (roundID <= latestRoundID) {
+        if (roundID <= latestRoundID && latestRoundID != 0) {
             revert("roundID should be monotonically increasing");
         }
 
