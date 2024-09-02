@@ -6,6 +6,7 @@
 pragma solidity 0.8.18;
 
 import {EVMEventInfo, EventImporter} from "./EventImporter.sol";
+import {AggregatorV3Interface} from "@chainlink/interfaces/AggregatorV3Interface.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
@@ -72,29 +73,18 @@ contract PriceFeedImporter is EventImporter, AggregatorV3Interface {
         _;
     }
 
-    constructor(bytes32 sourceBlockchainID_, address sourceOracleAggregator_, uint8 decimals_, string memory description_, uint256 version_) {
+    constructor(
+        bytes32 sourceBlockchainID_,
+        address sourceOracleAggregator_,
+        uint8 decimals_,
+        string memory description_,
+        uint256 version_
+    ) {
         sourceBlockchainID = sourceBlockchainID_;
         sourceOracleAggregator = sourceOracleAggregator_;
         decimals = decimals_;
         description = description_;
         version = version_;
-    }
-
-    function latestAnswer() external view returns (int256) {
-        (, int256 answer,,,) = latestRoundData();
-        return answer;
-    }
-
-    function latestRound() external view returns (uint256) {
-        (uint80 roundID,,,,) = latestRoundData();
-        return roundID;
-    }
-
-    // solhint-disable-next-line private-vars-leading-underscore
-    function getAnswer(uint256 _roundID) external view returns (int256) {
-        if (_roundID > 0xFFFFFFFF) return 0;
-        (, int256 answer,,,) = getRoundData(uint80(_roundID));
-        return answer;
     }
 
     // solhint-disable-next-line private-vars-leading-underscore

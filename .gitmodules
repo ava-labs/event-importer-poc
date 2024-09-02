@@ -7,3 +7,6 @@
 [submodule "contracts/lib/solidity-merkle-trees"]
 	path = contracts/lib/solidity-merkle-trees
 	url = git@github.com:michaelkaplan13/solidity-merkle-trees.git
+[submodule "contracts/lib/chainlink"]
+	path = contracts/lib/chainlink
+	url = https://github.com/smartcontractkit/chainlink
