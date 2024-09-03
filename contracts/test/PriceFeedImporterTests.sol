@@ -16,11 +16,6 @@ contract PriceFeedImporterMock is PriceFeedImporter(bytes32(0), address(0), 0, "
 }
 
 contract PriceFeedImporterTest is Test {
-    address public constant WARP_PRECOMPILE_ADDRESS = 0x0200000000000000000000000000000000000005;
-    bytes32 public constant DEFAULT_BLOCKCHAIN_ID =
-        bytes32(hex"55e1fcfdde01f9f6d4c16fa2ed89ce65a8669120a86f321eef121891cab61241");
-    address public constant SOURCE_ORACLE_AGGREGATOR = 0x154baB1FC1D87fF641EeD0E9Bc0f8a50D880D2B6;
-
     PriceFeedImporterMock public priceFeedImporter;
     bytes32 public answerUpdatedEventSignature;
 
