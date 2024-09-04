@@ -85,9 +85,7 @@ library RLPUtils {
         pure
         returns (uint256, bytes32)
     {
-        // RLP decode the block header.
-        RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toList();
-        require(blockHeader.length >= 15, "Invalid number of RLP elements in block header");
+        RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toListBounded(9);
 
         // Extract the block number and the receipts root from the RLP encoding.
         uint256 blockNumber = blockHeader[8].toUint();
