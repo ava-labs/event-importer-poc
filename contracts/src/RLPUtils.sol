@@ -71,7 +71,11 @@ library RLPUtils {
         return evmLog;
     }
 
-    function decodeLogFast(RLPReader.RLPItem memory encodedReceipt, uint256 logIndex) internal pure returns (EVMLog memory) {
+    function decodeLogFast(RLPReader.RLPItem memory encodedReceipt, uint256 logIndex)
+        internal
+        pure
+        returns (EVMLog memory)
+    {
         RLPReader.RLPItem[] memory receiptItems = encodedReceipt.toList();
         RLPReader.RLPItem[] memory logs = receiptItems[3].toList();
         if (logIndex >= logs.length) {

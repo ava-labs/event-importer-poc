@@ -5,13 +5,11 @@
 
 pragma solidity 0.8.18;
 
-import {EVMLog, EVMEventInfo, EVMReceipt, IEventImporter} from "./IEventImporter.sol";
+import {EVMLog, EVMEventInfo, IEventImporter} from "./IEventImporter.sol";
 import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
 import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
 import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RLPReader.sol";
 import {RLPUtils} from "./RLPUtils.sol";
-
-import "forge-std/Test.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
@@ -23,7 +21,7 @@ import "forge-std/Test.sol";
  * Uses the Warp precompile to authenticate the block hash of the block including the events to be imported.
  * Inheriting contracts must implement the _onEventImport function to handle event imports.
  */
-abstract contract EventImporter is IEventImporter, Test {
+abstract contract EventImporter is IEventImporter {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
@@ -57,10 +55,7 @@ abstract contract EventImporter is IEventImporter, Test {
         // TODO it is more expensive to do that because of the memory allocation
         // but Solidity function inlining is not easy to predict.
         TxLogIndex[] memory txLogIndexes = new TxLogIndex[](1);
-        txLogIndexes[0] = TxLogIndex({
-            txIndex: txIndex,
-            logIndex: logIndex
-        });
+        txLogIndexes[0] = TxLogIndex({txIndex: txIndex, logIndex: logIndex});
         importEvents(bytes32(0), blockHeader, receiptProof, txLogIndexes);
     }
 

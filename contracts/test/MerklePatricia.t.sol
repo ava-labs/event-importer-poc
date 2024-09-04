@@ -5,13 +5,13 @@
 
 pragma solidity 0.8.18;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
 import {RLPUtils} from "src/RLPUtils.sol";
 
 contract MerklePatriciaTest is Test {
-    function testVerify() public {
+    function testVerify() public pure {
         bytes32 receiptsRoot = 0x7149d37617782b645919054a607d47ffc590e8c8827c616e792b22caf8fb527f;
         bytes[] memory receiptProof = new bytes[](3);
         receiptProof[0] =
