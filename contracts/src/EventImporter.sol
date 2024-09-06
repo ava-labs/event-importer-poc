@@ -83,14 +83,14 @@ abstract contract EventImporter is IEventImporter {
         }
 
         // Verify the trie proof against the receipts root.
-        StorageValue[] memory results = MerklePatricia.VerifyEthereumProof(receiptsRoot, receiptProof, receiptKeys);
+        bytes[] memory results = MerklePatricia.VerifyEthereumProof(receiptsRoot, receiptProof, receiptKeys);
         require(results.length == receiptKeys.length, "Invalid number of results in receipt proof");
         for (uint256 i; i < results.length; i++) {
-            require(results[i].value.length > 0, "Invalid receipt proof");
+            require(results[i].length > 0, "Invalid receipt proof");
 
             TxLogIndex memory txLogIndex = txLogIndexes[i];
 
-            EVMLog memory log = RLPUtils.decodeLogFast(results[i].value.toRlpItem(), txLogIndex.logIndex);
+            EVMLog memory log = RLPUtils.decodeLogFast(results[i].toRlpItem(), txLogIndex.logIndex);
 
             _onEventImport(
                 EVMEventInfo({

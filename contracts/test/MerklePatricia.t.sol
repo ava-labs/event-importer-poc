@@ -23,8 +23,8 @@ contract MerklePatriciaTest is Test {
         uint256 txIndex = 8;
         bytes[] memory receiptKeys = new bytes[](1);
         receiptKeys[0] = RLPUtils.encodeUint256(txIndex);
-        StorageValue[] memory results = MerklePatricia.VerifyEthereumProof(receiptsRoot, receiptProof, receiptKeys);
+        bytes[] memory results = MerklePatricia.VerifyEthereumProof(receiptsRoot, receiptProof, receiptKeys);
         require(results.length == 1, "Invalid number of results in receipt proof");
-        require(results[0].value.length > 0, "Invalid receipt proof");
+        require(results[0].length > 0, "Invalid receipt proof");
     }
 }

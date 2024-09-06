@@ -49,5 +49,4 @@ var _ = ginkgo.Describe("[Event importing integration tests]", func() {
 		func() {
 			flows.ImportPriceFeed(LocalNetworkInstance)
 		})
-
 })
