@@ -5,7 +5,7 @@
 
 pragma solidity 0.8.18;
 
-import {EVMLog, EVMEventInfo, IEventImporter} from "./IEventImporter.sol";
+import {EVMLog, EVMReceipt, EVMEventInfo, IEventImporter} from "./IEventImporter.sol";
 import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
 import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
 import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RLPReader.sol";
@@ -83,14 +83,16 @@ abstract contract EventImporter is IEventImporter {
         }
 
         // Verify the trie proof against the receipts root.
-        bytes[] memory results = MerklePatricia.VerifyEthereumProof(receiptsRoot, receiptProof, receiptKeys);
-        require(results.length == receiptKeys.length, "Invalid number of results in receipt proof");
-        for (uint256 i; i < results.length; i++) {
-            require(results[i].length > 0, "Invalid receipt proof");
+        bytes[] memory receipts = MerklePatricia.VerifyEthereumProof(receiptsRoot, receiptProof, receiptKeys);
+        require(receipts.length == receiptKeys.length, "Invalid number of receipts in receipt proof");
+        for (uint256 i; i < receipts.length; i++) {
+            require(receipts[i].length > 0, "Invalid receipt proof");
 
             TxLogIndex memory txLogIndex = txLogIndexes[i];
 
-            EVMLog memory log = RLPUtils.decodeLogFast(results[i].toRlpItem(), txLogIndex.logIndex);
+            EVMLog memory log = RLPUtils.decodeLogFast(receipts[i].toRlpItem(), txLogIndex.logIndex);
+            // EVMReceipt memory receipt = RLPUtils.decodeRreceiptsresults[i].toRlpItem());
+            // EVMLog memory log = receipt.logs[txLogIndex.logIndex];
 
             _onEventImport(
                 EVMEventInfo({

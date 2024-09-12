@@ -89,11 +89,15 @@ library RLPUtils {
         pure
         returns (uint256, bytes32)
     {
-        RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toListBounded(9);
+        // RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toListBounded(9);
+        RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toListBitmap(bytes32(uint256(8 << 16 | 5 << 8 | 2)));
 
         // Extract the block number and the receipts root from the RLP encoding.
-        uint256 blockNumber = blockHeader[8].toUint();
-        bytes32 receiptsRoot = bytes32(blockHeader[5].toBytes());
+        // uint256 blockNumber = blockHeader[8].toUint();
+        // bytes32 receiptsRoot = bytes32(blockHeader[5].toBytes());
+
+        bytes32 receiptsRoot = bytes32(blockHeader[0].toBytes());
+        uint256 blockNumber = blockHeader[1].toUint();
 
         return (blockNumber, receiptsRoot);
     }
