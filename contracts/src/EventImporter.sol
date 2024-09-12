@@ -7,7 +7,7 @@ pragma solidity 0.8.18;
 
 import {EVMLog, EVMReceipt, EVMEventInfo, IEventImporter} from "./IEventImporter.sol";
 import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
-import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
+import {MerklePatricia} from "@solidity-merkle-trees/MerklePatricia.sol";
 import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RLPReader.sol";
 import {RLPUtils} from "./RLPUtils.sol";
 

@@ -5,8 +5,8 @@ import "./Node.sol";
 // SPDX-License-Identifier: Apache2
 
 library Option {
-    function isSome(ValueOption memory val) internal pure returns (bool) {
-        return val.isSome == true;
+    function isSome(OptionalNodeHandle memory val) internal pure returns (bool) {
+        return val.op == GenericOption.Some;
     }
 
     function isSome(NodeHandleOption memory val) internal pure returns (bool) {

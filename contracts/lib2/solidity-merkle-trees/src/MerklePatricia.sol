@@ -9,14 +9,6 @@ import "./trie/ethereum/EthereumTrieDB.sol";
 
 // SPDX-License-Identifier: Apache2
 
-// Outcome of a successfully verified merkle-patricia proof
-struct StorageValue {
-    // the storage key
-    bytes key;
-    // the encoded value
-    bytes value;
-}
-
 /**
  * @title A Merkle Patricia library
  * @author Polytope Labs
@@ -24,6 +16,8 @@ struct StorageValue {
  * @dev refer to research for more info. https://research.polytope.technology/state-(machine)-proofs
  */
 library MerklePatricia {
+    using OptionalNodeHandleLib for OptionalNodeHandle;
+
     /**
      * @notice Verifies ethereum specific merkle patricia proofs as described by EIP-1188.
      * @param root hash of the merkle patricia trie
@@ -34,9 +28,9 @@ library MerklePatricia {
     function VerifyEthereumProof(bytes32 root, bytes[] memory proof, bytes[] memory keys)
         internal
         pure
-        returns (StorageValue[] memory)
+        returns (bytes[] memory)
     {
-        StorageValue[] memory values = new StorageValue[](keys.length);
+        bytes[] memory values = new bytes[](keys.length);
         TrieNode[] memory nodes = new TrieNode[](proof.length);
 
         for (uint256 i = 0; i < proof.length; i++) {
@@ -44,7 +38,6 @@ library MerklePatricia {
         }
 
         for (uint256 i = 0; i < keys.length; i++) {
-            values[i].key = keys[i];
             NibbleSlice memory keyNibbles = NibbleSlice(keys[i], 0);
             NodeKind memory node = EthereumTrieDB.decodeNodeKind(TrieDB.get(nodes, root));
 
@@ -61,7 +54,7 @@ library MerklePatricia {
                     // Let's cut the key passed as input
                     keyNibbles = NibbleSlice(NibbleSliceOps.bytesSlice(keyNibbles.data, offset), 0);
                     if (NibbleSliceOps.eq(leaf.key, keyNibbles)) {
-                        values[i].value = TrieDB.load(nodes, leaf.value);
+                        values[i] = TrieDB.load(nodes, leaf.value);
                     }
                     break;
                 } else if (TrieDB.isExtension(node)) {
@@ -79,14 +72,14 @@ library MerklePatricia {
                     Branch memory branch = EthereumTrieDB.decodeBranch(node);
                     if (NibbleSliceOps.isEmpty(keyNibbles)) {
                         if (Option.isSome(branch.value)) {
-                            values[i].value = TrieDB.load(nodes, branch.value.value);
+                            values[i] = TrieDB.load(nodes, branch.value.unwrapUnchecked());
                         }
                         break;
                     } else {
-                        NodeHandleOption memory handle = branch.children[NibbleSliceOps.at(keyNibbles, 0)];
+                        OptionalNodeHandle memory handle = branch.children[NibbleSliceOps.at(keyNibbles, 0)];
                         if (Option.isSome(handle)) {
                             keyNibbles = NibbleSliceOps.mid(keyNibbles, 1);
-                            nextNode = handle.value;
+                            nextNode = handle.unwrapUnchecked();
                         } else {
                             break;
                         }

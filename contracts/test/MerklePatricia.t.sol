@@ -7,7 +7,7 @@ pragma solidity 0.8.18;
 
 import {Test} from "forge-std/Test.sol";
 
-import {MerklePatricia, StorageValue} from "@solidity-merkle-trees/MerklePatricia.sol";
+import {MerklePatricia} from "@solidity-merkle-trees/MerklePatricia.sol";
 import {RLPUtils} from "src/RLPUtils.sol";
 
 contract MerklePatriciaTest is Test {

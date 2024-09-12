@@ -32,14 +32,14 @@ struct Extension {
 }
 
 struct Branch {
-    NodeHandleOption value;
-    NodeHandleOption[16] children;
+    OptionalNodeHandle value;
+    OptionalNodeHandle[16] children;
 }
 
 struct NibbledBranch {
     NibbleSlice key;
-    NodeHandleOption value;
-    NodeHandleOption[16] children;
+    OptionalNodeHandle value;
+    OptionalNodeHandle[16] children;
 }
 
 struct ValueOption {
@@ -60,4 +60,60 @@ struct Leaf {
 struct TrieNode {
     bytes32 hash;
     bytes node;
+}
+
+enum GenericOption {
+    None,
+    Some
+}
+
+struct OptionalNodeHandle {
+    GenericOption op;
+    uint256 ptr;
+}
+
+library OptionalNodeHandleLib {
+    using OptionalNodeHandleLib for OptionalNodeHandle;
+
+    // function isNone(OptionalNodeHandle memory o) internal pure returns (bool) {
+    //     return o.op == GenericOption.None;
+    // }
+
+    // function isSome(OptionalNodeHandle memory o) internal pure returns (bool) {
+    //     return o.op == GenericOption.Some;
+    // }
+
+    function unwrap(OptionalNodeHandle memory o) internal pure returns (NodeHandle memory) {
+        // if (o.isSome()) {
+        if (o.op == GenericOption.Some) {
+            return o.unwrapUnchecked();
+        }
+        revert("panic!");
+    }
+
+    function unwrapUnchecked(OptionalNodeHandle memory o) internal pure returns (NodeHandle memory nodeHandle) {
+        uint256 ptr = o.ptr;
+        assembly {
+            nodeHandle := ptr
+        }
+        return nodeHandle;
+    }
+
+    function none() internal pure returns (OptionalNodeHandle memory) {
+        return OptionalNodeHandle({
+            op: GenericOption.None,
+            ptr: 0
+        });
+    }
+
+    function some(NodeHandle memory nodeHandle) internal pure returns (OptionalNodeHandle memory) {
+        uint256 ptr;
+        assembly {
+            ptr := nodeHandle
+        }
+        return OptionalNodeHandle({
+            op: GenericOption.Some,
+            ptr: ptr
+        });
+    }
 }

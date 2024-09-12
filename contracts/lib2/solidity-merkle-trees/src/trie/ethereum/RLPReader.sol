@@ -98,11 +98,25 @@ library RLPReader {
         return len;
     }
 
+    // @return indicator whether encoded payload is a list. negate this function call for isData.
+    function isList(RLPItem memory item) internal pure returns (bool) {
+        if (item.len == 0) return false;
+
+        uint8 byte0;
+        uint256 memPtr = item.memPtr;
+        assembly {
+            byte0 := byte(0, mload(memPtr))
+        }
+
+        if (byte0 < LIST_SHORT_START) return false;
+        return true;
+    }
+
     /*
      * @param the RLP item containing the encoded list.
      */
     function toList(RLPItem memory item) internal pure returns (RLPItem[] memory) {
-        require(isList(item));
+        require(isList(item), "RLP item is not a list");
 
         uint256 items = numItems(item);
         RLPItem[] memory result = new RLPItem[](items);
@@ -118,18 +132,54 @@ library RLPReader {
         return result;
     }
 
-    // @return indicator whether encoded payload is a list. negate this function call for isData.
-    function isList(RLPItem memory item) internal pure returns (bool) {
-        if (item.len == 0) return false;
+    function toListBounded(RLPItem memory item, uint256 n) internal pure returns (RLPItem[] memory) {
+        require(isList(item), "RLP item is not a list");
 
-        uint8 byte0;
-        uint256 memPtr = item.memPtr;
-        assembly {
-            byte0 := byte(0, mload(memPtr))
+        uint256 items = numItems(item);
+        items = n < items ? n : items;
+        RLPItem[] memory result = new RLPItem[](items);
+
+        uint256 memPtr = item.memPtr + _payloadOffset(item.memPtr);
+        uint256 dataLen;
+        for (uint256 i = 0; i < items; i++) {
+            dataLen = _itemLength(memPtr);
+            result[i] = RLPItem(dataLen, memPtr);
+            memPtr = memPtr + dataLen;
         }
 
-        if (byte0 < LIST_SHORT_START) return false;
-        return true;
+        return result;
+    }
+
+    function toListBitmap(RLPItem memory item, bytes32 bitmap) internal pure returns (RLPItem[] memory) {
+        require(isList(item), "RLP item is not a list");
+
+        uint256 items;
+        assembly {
+            items := and(bitmap, 0xff)
+        }
+        RLPItem[] memory result = new RLPItem[](items);
+
+        uint256 memPtr = item.memPtr + _payloadOffset(item.memPtr);
+        uint256 dataLen;
+        uint256 idxOffset;
+        uint256 nextIdx;
+        assembly {
+            nextIdx := shr(8, and(bitmap, shl(8, 0xff)))
+        }
+        for (uint256 i = 0; i <= nextIdx; i++) {
+            dataLen = _itemLength(memPtr);
+            if (i == nextIdx) {
+                result[idxOffset] = RLPItem(dataLen, memPtr);
+                assembly {
+                    idxOffset := add(idxOffset, 1)
+                    let offset := mul(8, add(idxOffset, 1))
+                    nextIdx := shr(offset, and(bitmap, shl(offset, 0xff)))
+                }
+            }
+            memPtr = memPtr + dataLen;
+        }
+
+        return result;
     }
 
     /*
@@ -317,9 +367,13 @@ library RLPReader {
             return 1;
         } else if (byte0 < LIST_SHORT_START) {
             // being explicit
-            return byte0 - (STRING_LONG_START - 1) + 1;
+            unchecked {
+                return byte0 - (STRING_LONG_START - 1) + 1;
+            }
         } else {
-            return byte0 - (LIST_LONG_START - 1) + 1;
+            unchecked {
+                return byte0 - (LIST_LONG_START - 1) + 1;
+            }
         }
     }
 

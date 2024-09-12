@@ -11,6 +11,7 @@ library EthereumTrieDB {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
     using RLPReader for RLPReader.Iterator;
+    using OptionalNodeHandleLib for OptionalNodeHandle;
 
     bytes constant HASHED_NULL_NODE = hex"56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421";
 
@@ -74,21 +75,21 @@ library EthereumTrieDB {
         Branch memory branch;
         RLPReader.RLPItem[] memory decoded = node.data.data.toRlpItem().toList();
 
-        NodeHandleOption[16] memory childrens;
+        OptionalNodeHandle[16] memory childrens;
 
         for (uint256 i = 0; i < 16; i++) {
             bytes memory dataAsBytes = decoded[i].toBytes();
             if (dataAsBytes.length != 32) {
-                childrens[i] = NodeHandleOption(false, NodeHandle(false, bytes32(0), false, new bytes(0)));
+                childrens[i] = OptionalNodeHandleLib.none();
             } else {
                 bytes32 data = Bytes.toBytes32(dataAsBytes);
-                childrens[i] = NodeHandleOption(true, NodeHandle(true, data, false, new bytes(0)));
+                childrens[i] = OptionalNodeHandleLib.some(NodeHandle(true, data, false, new bytes(0)));
             }
         }
         if (isEmpty(decoded[16].toBytes())) {
-            branch.value = NodeHandleOption(false, NodeHandle(false, bytes32(0), false, new bytes(0)));
+            branch.value = OptionalNodeHandleLib.none();
         } else {
-            branch.value = NodeHandleOption(true, NodeHandle(false, bytes32(0), true, decoded[16].toBytes()));
+            branch.value = OptionalNodeHandleLib.some(NodeHandle(false, bytes32(0), true, decoded[16].toBytes()));
         }
         branch.children = childrens;
 
