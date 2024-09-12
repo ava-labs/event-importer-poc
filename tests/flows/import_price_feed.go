@@ -47,6 +47,9 @@ func ImportPriceFeed(network interfaces.Network) {
 		subnetAInfo,
 		cChainInfo.BlockchainID,
 		mockPriceFeedAggegratorAddress,
+		18,
+		"WarpETHUSDAggregator",
+		big.NewInt(1),
 	)
 
 	// Update the Mock Price Feed contract on C-Chain

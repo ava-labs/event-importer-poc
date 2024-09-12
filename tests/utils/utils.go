@@ -76,6 +76,9 @@ func DeployPriceFeedImporter(
 	subnet interfaces.SubnetTestInfo,
 	aggregatorBlockchainID ids.ID,
 	aggregatorAddress common.Address,
+	decimals uint8,
+	description string,
+	version *big.Int,
 ) (common.Address, *pricefeedimporter.PriceFeedImporter) {
 	opts, err := bind.NewKeyedTransactorWithChainID(senderKey, subnet.EVMChainID)
 	Expect(err).Should(BeNil())
@@ -84,6 +87,9 @@ func DeployPriceFeedImporter(
 		subnet.RPCClient,
 		aggregatorBlockchainID,
 		aggregatorAddress,
+		decimals,
+		description,
+		version,
 	)
 	Expect(err).Should(BeNil())
 	teleporterUtils.WaitForTransactionSuccess(ctx, subnet, tx.Hash())

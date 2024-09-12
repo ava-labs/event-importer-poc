@@ -12,7 +12,6 @@ import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RLPReader.sol";
  * THIS IS AN EXAMPLE LIBRARY THAT USES UN-AUDITED CODE.
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
-
 library RLPUtils {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;

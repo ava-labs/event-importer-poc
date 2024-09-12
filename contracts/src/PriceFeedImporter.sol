@@ -6,6 +6,7 @@
 pragma solidity 0.8.18;
 
 import {EVMEventInfo, EventImporter} from "./EventImporter.sol";
+import {AggregatorV3Interface} from "@chainlink/interfaces/AggregatorV3Interface.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
@@ -15,8 +16,18 @@ import {EVMEventInfo, EventImporter} from "./EventImporter.sol";
 /**
  * @notice An example EventImporter implementation that imports the latest price feed data from another blockchain.
  */
-contract PriceFeedImporter is EventImporter {
+contract PriceFeedImporter is EventImporter, AggregatorV3Interface {
+    struct Round {
+        int256 answer;
+        uint256 updatedAt;
+    }
+
     bytes32 public constant ANSWER_UPDATED_EVENT_SIGNATURE = keccak256("AnswerUpdated(int256,uint256,uint256)");
+
+    // Price feed information
+    uint8 public immutable decimals;
+    string public description;
+    uint256 public immutable version;
 
     // Blockchain ID of the oracle chain.
     bytes32 public immutable sourceBlockchainID;
@@ -24,10 +35,9 @@ contract PriceFeedImporter is EventImporter {
     // Address of the Aggregator contract on the source blockchain.
     address public immutable sourceOracleAggregator;
 
-    // Latest answer information.
-    int256 public currentAnswer;
-    uint80 public roundID;
-    uint256 public updatedAt;
+    // Rounds
+    uint80 public latestRoundID;
+    mapping(uint80 => Round) public rounds;
 
     // The block and transaction on the source blockchain where the latest answer was updated.
     uint256 public latestSourceBlockNumber;
@@ -63,17 +73,32 @@ contract PriceFeedImporter is EventImporter {
         _;
     }
 
-    constructor(bytes32 sourceBlockchainID_, address sourceOracleAggregator_) {
+    constructor(
+        bytes32 sourceBlockchainID_,
+        address sourceOracleAggregator_,
+        uint8 decimals_,
+        string memory description_,
+        uint256 version_
+    ) {
         sourceBlockchainID = sourceBlockchainID_;
         sourceOracleAggregator = sourceOracleAggregator_;
+        decimals = decimals_;
+        description = description_;
+        version = version_;
+    }
+
+    // solhint-disable-next-line private-vars-leading-underscore
+    function getRoundData(uint80 _roundID) public view returns (uint80, int256, uint256, uint256, uint80) {
+        Round memory round = rounds[_roundID];
+        require(round.updatedAt != 0, "No data");
+        return (_roundID, round.answer, round.updatedAt, round.updatedAt, _roundID);
     }
 
     /**
      * @notice Returns the latest round data if available.
      */
-    function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80) {
-        require(updatedAt != 0, "No data");
-        return (roundID, currentAnswer, updatedAt, updatedAt, roundID);
+    function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80) {
+        return getRoundData(latestRoundID);
     }
 
     function _onEventImport(EVMEventInfo memory eventInfo)
@@ -84,15 +109,22 @@ contract PriceFeedImporter is EventImporter {
         _onlyMoreRecentEvents(eventInfo)
     {
         // Update the latest answer.
-        currentAnswer = int256(uint256(eventInfo.log.topics[1]));
-        roundID = uint80(uint256(eventInfo.log.topics[2]));
-        updatedAt = uint256(bytes32(eventInfo.log.data));
+        uint80 roundID = uint80(uint256(eventInfo.log.topics[2]));
+        if (roundID <= latestRoundID && latestRoundID != 0) {
+            revert("roundID should be monotonically increasing");
+        }
+
+        int256 answer = int256(uint256(eventInfo.log.topics[1]));
+        uint256 updatedAt = uint256(bytes32(eventInfo.log.data));
+        Round memory round = Round({answer: answer, updatedAt: updatedAt});
+        rounds[roundID] = round;
+        latestRoundID = roundID;
 
         // Update the latest source block information.
         latestSourceBlockNumber = eventInfo.blockNumber;
         latestSourceTxIndex = eventInfo.txIndex;
         latestSourceLogIndex = eventInfo.logIndex;
 
-        emit AnswerUpdated(currentAnswer, roundID, updatedAt);
+        emit AnswerUpdated(answer, roundID, updatedAt);
     }
 }
