@@ -42,7 +42,7 @@ library RLPUtils {
         EVMReceipt memory result;
         result.txType = txType;
         result.postStateOrStatus = receiptItems[0].toBytes();
-        result.cululativeGasUsed = uint64(receiptItems[1].toUint());
+        result.cumulativeGasUsed = uint64(receiptItems[1].toUint());
         result.bloom = receiptItems[2].toBytes();
         RLPReader.RLPItem[] memory logs = receiptItems[3].toList();
         result.logs = new EVMLog[](logs.length);
@@ -57,7 +57,7 @@ library RLPUtils {
         RLPReader.RLPItem[] memory log = encodedLog.toList();
         // Three items in every receipt are:
         // 1. Address of the logger
-        // 2. Log topics, of which there is always at least one (the event signature)
+        // 2. Log topics
         // 3. Log data (arbitrary bytes)
         require(log.length == 3, "Invalid number of RLP elements in log");
         EVMLog memory evmLog;
@@ -71,18 +71,33 @@ library RLPUtils {
         return evmLog;
     }
 
+    function decodeLogFast(RLPReader.RLPItem memory encodedReceipt, uint256 logIndex)
+        internal
+        pure
+        returns (EVMLog memory)
+    {
+        RLPReader.RLPItem[] memory receiptItems = encodedReceipt.toList();
+        RLPReader.RLPItem[] memory logs = receiptItems[3].toList();
+        if (logIndex >= logs.length) {
+            revert("Invalid log index");
+        }
+        return decodeLog(logs[logIndex]);
+    }
+
     function decodeBlockNumberAndReceiptsRoot(bytes memory encodedBlockHeader)
         internal
         pure
         returns (uint256, bytes32)
     {
-        // RLP decode the block header.
-        RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toList();
-        require(blockHeader.length >= 15, "Invalid number of RLP elements in block header");
+        // RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toListBounded(9);
+        RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toListBitmap(bytes32(uint256(8 << 16 | 5 << 8 | 2)));
 
         // Extract the block number and the receipts root from the RLP encoding.
-        uint256 blockNumber = blockHeader[8].toUint();
-        bytes32 receiptsRoot = bytes32(blockHeader[5].toBytes());
+        // uint256 blockNumber = blockHeader[8].toUint();
+        // bytes32 receiptsRoot = bytes32(blockHeader[5].toBytes());
+
+        bytes32 receiptsRoot = bytes32(blockHeader[0].toBytes());
+        uint256 blockNumber = blockHeader[1].toUint();
 
         return (blockNumber, receiptsRoot);
     }
