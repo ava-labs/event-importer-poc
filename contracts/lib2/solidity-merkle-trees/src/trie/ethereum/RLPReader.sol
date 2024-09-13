@@ -163,18 +163,20 @@ library RLPReader {
 
         uint256 count = 0;
         uint256 memPtr = item.memPtr;
-        uint256 currPtr = memPtr + _payloadOffset(memPtr);
-        uint256 endPtr = memPtr + item.len;
-        while (currPtr < endPtr) {
-            uint256 dataLen = _itemLength(currPtr);
-            result[count] = RLPItem(dataLen, currPtr);
-            currPtr = currPtr + dataLen;
-            count++;
+        uint256 currPtr;
+        uint256 endPtr;
+        unchecked {
+            currPtr = memPtr + _payloadOffset(memPtr);
+            endPtr = memPtr + item.len;
+            while (currPtr < endPtr) {
+                uint256 dataLen = _itemLength(currPtr);
+                result[count] = RLPItem(dataLen, currPtr);
+                currPtr = currPtr + dataLen;
+                count++;
+            }
         }
-
         assembly {
             mstore(result, count)
-            // return(result, add(0x20, mul(count, 0x40)))
         }
 
         return result;
@@ -340,11 +342,15 @@ library RLPReader {
         if (item.len == 0) return 0;
 
         uint256 count = 0;
-        uint256 currPtr = item.memPtr + _payloadOffset(item.memPtr);
-        uint256 endPtr = item.memPtr + item.len;
-        while (currPtr < endPtr) {
-            currPtr = currPtr + _itemLength(currPtr); // skip over an item
-            count++;
+        uint256 currPtr;
+        uint256 endPtr;
+        unchecked {
+            currPtr = item.memPtr + _payloadOffset(item.memPtr);
+            endPtr = item.memPtr + item.len;
+            while (currPtr < endPtr) {
+                currPtr = currPtr + _itemLength(currPtr); // skip over an item
+                count++;
+            }
         }
 
         return count;
@@ -361,7 +367,9 @@ library RLPReader {
         if (byte0 < STRING_SHORT_START) {
             itemLen = 1;
         } else if (byte0 < STRING_LONG_START) {
-            itemLen = byte0 - STRING_SHORT_START + 1;
+            unchecked {
+                itemLen = byte0 - STRING_SHORT_START + 1;
+            }
         } else if (byte0 < LIST_SHORT_START) {
             assembly {
                 let byteLen := sub(byte0, 0xb7) // # of bytes the actual length is
@@ -372,7 +380,9 @@ library RLPReader {
                 itemLen := add(dataLen, add(byteLen, 1))
             }
         } else if (byte0 < LIST_LONG_START) {
-            itemLen = byte0 - LIST_SHORT_START + 1;
+            unchecked {
+                itemLen = byte0 - LIST_SHORT_START + 1;
+            }
         } else {
             assembly {
                 let byteLen := sub(byte0, 0xf7)

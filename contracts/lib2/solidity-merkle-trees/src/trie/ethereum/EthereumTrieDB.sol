@@ -86,11 +86,13 @@ library EthereumTrieDB {
                 childrens[i] = OptionalNodeHandleLib.some(NodeHandle(true, data, false, new bytes(0)));
             }
         }
+
         if (isEmpty(decoded[16].toBytes())) {
             branch.value = OptionalNodeHandleLib.none();
         } else {
             branch.value = OptionalNodeHandleLib.some(NodeHandle(false, bytes32(0), true, decoded[16].toBytes()));
         }
+
         branch.children = childrens;
 
         return branch;
