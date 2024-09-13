@@ -3,7 +3,7 @@
 
 // SPDX-License-Identifier: Ecosystem
 
-pragma solidity 0.8.18;
+pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {RLPUtils} from "../src/RLPUtils.sol";
@@ -66,5 +66,12 @@ contract PriceFeedImporterTest is Test {
         uint256 g = gasleft();
         (uint256 number, bytes32 root) = RLPUtils.decodeBlockNumberAndReceiptsRoot(blockHeader);
         emit log_uint(g - gasleft());
+    }
+
+    function testToList() public {
+        bytes memory data = hex"c100";
+        RLPReader.RLPItem memory item = data.toRlpItem();
+        RLPReader.RLPItem[] memory items = item.toList();
+        assertEq(items.length, 1);
     }
 }

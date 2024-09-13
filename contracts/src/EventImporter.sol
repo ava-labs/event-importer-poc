@@ -3,7 +3,7 @@
 
 // SPDX-License-Identifier: Ecosystem
 
-pragma solidity 0.8.18;
+pragma solidity ^0.8.24;
 
 import {EVMLog, EVMReceipt, EVMEventInfo, IEventImporter} from "./IEventImporter.sol";
 import {WarpBlockHash, IWarpMessenger} from "@subnet-evm/contracts/interfaces/IWarpMessenger.sol";
@@ -91,8 +91,6 @@ abstract contract EventImporter is IEventImporter {
             TxLogIndex memory txLogIndex = txLogIndexes[i];
 
             EVMLog memory log = RLPUtils.decodeLogFast(receipts[i].toRlpItem(), txLogIndex.logIndex);
-            // EVMReceipt memory receipt = RLPUtils.decodeRreceiptsresults[i].toRlpItem());
-            // EVMLog memory log = receipt.logs[txLogIndex.logIndex];
 
             _onEventImport(
                 EVMEventInfo({

@@ -3,7 +3,7 @@
 
 // SPDX-License-Identifier: Ecosystem
 
-pragma solidity 0.8.18;
+pragma solidity ^0.8.24;
 
 import {EVMLog, EVMReceipt} from "./IEventImporter.sol";
 import {RLPReader} from "@solidity-merkle-trees/trie/ethereum/RLPReader.sol";
@@ -76,8 +76,8 @@ library RLPUtils {
         pure
         returns (EVMLog memory)
     {
-        RLPReader.RLPItem[] memory receiptItems = encodedReceipt.toList();
-        RLPReader.RLPItem[] memory logs = receiptItems[3].toList();
+        RLPReader.RLPItem[] memory receiptItems = encodedReceipt.toListBitmap(bytes32(uint256(3 << 8 | 1)));
+        RLPReader.RLPItem[] memory logs = receiptItems[0].toList();
         if (logIndex >= logs.length) {
             revert("Invalid log index");
         }
@@ -89,12 +89,7 @@ library RLPUtils {
         pure
         returns (uint256, bytes32)
     {
-        // RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toListBounded(9);
         RLPReader.RLPItem[] memory blockHeader = encodedBlockHeader.toRlpItem().toListBitmap(bytes32(uint256(8 << 16 | 5 << 8 | 2)));
-
-        // Extract the block number and the receipts root from the RLP encoding.
-        // uint256 blockNumber = blockHeader[8].toUint();
-        // bytes32 receiptsRoot = bytes32(blockHeader[5].toBytes());
 
         bytes32 receiptsRoot = bytes32(blockHeader[0].toBytes());
         uint256 blockNumber = blockHeader[1].toUint();

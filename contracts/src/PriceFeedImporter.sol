@@ -3,7 +3,7 @@
 
 // SPDX-License-Identifier: Ecosystem
 
-pragma solidity 0.8.18;
+pragma solidity ^0.8.24;
 
 import {EVMEventInfo, EventImporter} from "./EventImporter.sol";
 import {AggregatorV3Interface} from "@chainlink/interfaces/AggregatorV3Interface.sol";

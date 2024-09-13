@@ -4,7 +4,7 @@
  * @author Hamdi Allam hamdi.allam97@gmail.com
  * Please reach out with any questions or concerns
  */
-pragma solidity >=0.5.10 <0.9.0;
+pragma solidity ^0.8.24;
 
 library RLPReader {
     uint8 constant STRING_SHORT_START = 0x80;
@@ -115,36 +115,66 @@ library RLPReader {
     /*
      * @param the RLP item containing the encoded list.
      */
+    function toList2(RLPItem memory item) internal pure returns (RLPItem[] memory) {
+        require(isList(item), "RLP item is not a list");
+
+        uint256 resultPtr;
+        uint256 ptr;
+        assembly {
+            resultPtr := mload(0x40)
+            ptr := add(resultPtr, 0x20)
+        }
+
+        uint256 count = 0;
+        uint256 memPtr = item.memPtr;
+        uint256 currPtr = memPtr + _payloadOffset(memPtr);
+        uint256 endPtr = memPtr + item.len;
+        while (currPtr < endPtr) {
+            uint256 dataLen = _itemLength(currPtr);
+            assembly {
+                mstore(ptr, dataLen)
+                ptr := add(ptr, 0x20)
+                mstore(ptr, currPtr)
+                ptr := add(ptr, 0x20)
+            }
+            currPtr = currPtr + dataLen;
+            count++;
+        }
+
+        assembly {
+            mstore(resultPtr, count)
+            // mstore(0x40, ptr)
+            mstore(0x40, add(add(resultPtr, 0x20), mul(0x40, count)))
+        }
+
+        RLPItem[] memory result;
+        assembly {
+            result := resultPtr
+        }
+        // TODO there is something wrong with the data layout
+        return result;
+    }
+
     function toList(RLPItem memory item) internal pure returns (RLPItem[] memory) {
         require(isList(item), "RLP item is not a list");
 
         uint256 items = numItems(item);
         RLPItem[] memory result = new RLPItem[](items);
 
-        uint256 memPtr = item.memPtr + _payloadOffset(item.memPtr);
-        uint256 dataLen;
-        for (uint256 i = 0; i < items; i++) {
-            dataLen = _itemLength(memPtr);
-            result[i] = RLPItem(dataLen, memPtr);
-            memPtr = memPtr + dataLen;
+        uint256 count = 0;
+        uint256 memPtr = item.memPtr;
+        uint256 currPtr = memPtr + _payloadOffset(memPtr);
+        uint256 endPtr = memPtr + item.len;
+        while (currPtr < endPtr) {
+            uint256 dataLen = _itemLength(currPtr);
+            result[count] = RLPItem(dataLen, currPtr);
+            currPtr = currPtr + dataLen;
+            count++;
         }
 
-        return result;
-    }
-
-    function toListBounded(RLPItem memory item, uint256 n) internal pure returns (RLPItem[] memory) {
-        require(isList(item), "RLP item is not a list");
-
-        uint256 items = numItems(item);
-        items = n < items ? n : items;
-        RLPItem[] memory result = new RLPItem[](items);
-
-        uint256 memPtr = item.memPtr + _payloadOffset(item.memPtr);
-        uint256 dataLen;
-        for (uint256 i = 0; i < items; i++) {
-            dataLen = _itemLength(memPtr);
-            result[i] = RLPItem(dataLen, memPtr);
-            memPtr = memPtr + dataLen;
+        assembly {
+            mstore(result, count)
+            // return(result, add(0x20, mul(count, 0x40)))
         }
 
         return result;
@@ -218,12 +248,14 @@ library RLPReader {
         bytes memory result = new bytes(item.len);
         if (result.length == 0) return result;
 
-        uint256 ptr;
+        uint256 destPtr;
+        uint256 memPtr = item.memPtr;
+        uint256 len = item.len;
         assembly {
-            ptr := add(0x20, result)
+            destPtr := add(0x20, result)
+            mcopy(destPtr, memPtr, len)
         }
 
-        copy(item.memPtr, ptr, item.len);
         return result;
     }
 
@@ -293,9 +325,9 @@ library RLPReader {
         uint256 destPtr;
         assembly {
             destPtr := add(0x20, result)
+            mcopy(destPtr, memPtr, len)
         }
 
-        copy(memPtr, destPtr, len);
         return result;
     }
 
