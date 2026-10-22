@@ -19,7 +19,7 @@ jobs:
 
       - name: Install solhint
         run: |
-          npm install solhint -g
+          npm install solhint@5.0.5 -g
           solhint --version
 
       - name: Run Lint
